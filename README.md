@@ -8,3 +8,6 @@ IoT · Management · Inteligenta Artificiala
 - `index.php` — entry point
 - `style.css` — stiluri
 - `views/` — template-uri PHP
+
+## Status
+Repo privat conectat cu Claude Desktop via MCP GitHub.
