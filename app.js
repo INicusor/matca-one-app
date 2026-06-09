@@ -1,1 +1,9 @@
-LyogPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0KICAgTUlFUkVBIFBPRlRBIOKAlCBhcHAuanMgdjIuMAogICBDU1JGIGludGVncmF0LCBib3R0b20gbmF2LCBpMThuLCBuaWdodCBtb2RlLCBzcGFya2xpbmVzCiAgIENvcHlyaWdodCAoYykgMjAyMy0yMDI1IE1hdGNhIE9uZQogICA9PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PSAqLwoKLy8gQ29uc3RhbnQgZm9yIGFwcCB2ZXJzaW9uICh1c2VkIGluIHN3LnVwZGF0ZSkKY29uc3QgQVBQX1ZFUlNJT04gPSAnMy41LjAnOwo=
+/* ============================================
+   MIEREA POFTA — app.js v2.0
+   CSRF integrat, bottom nav sync,
+   smartFetch cu token automat
+   ============================================ */
+
+/* ─ placeholder ─ DO NOT USE ─ see assets/app.js for full source */
+/* This file is intentionally minimal — deploy via cpanel from assets/app.js */
+console.warn('app.js root is a stub — use assets/app.js');
