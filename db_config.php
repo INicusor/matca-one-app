@@ -1,11 +1,12 @@
 <?php
 /* =========================================
    CONFIGURARE BAZA DE DATE (MatcaDB)
-   ⚠️  Nu include in Git! Adauga in .gitignore
+   ⚠️  Copiaza acest fisier in db_config.php
+   ⚠️  Completeaza valorile reale
+   ⚠️  NICIODATA nu uploada db_config.php pe Git!
    ========================================= */
 define('DB_HOST',    'localhost');
-define('DB_NAME',    'danc_MatcaDB');
-define('DB_USER',    'danc_matcaapp');
-define('DB_PASS',    '^gcq?&,~B)K6-tZC');
+define('DB_NAME',    'your_database_name');
+define('DB_USER',    'your_database_user');
+define('DB_PASS',    'your_database_password');
 define('DB_CHARSET', 'utf8mb4');
- 
