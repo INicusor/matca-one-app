@@ -63,15 +63,12 @@
   --t-slow:   0.5s  cubic-bezier(0.16,1,0.3,1);
 }
 
-/* ══════════════════════════════════════════
-   BAZĂ
-   ══════════════════════════════════════════ */
 body {
   font-family: var(--font-body);
   background-color: var(--cream);
   color: var(--text-dark);
   margin: 0;
-  padding: 0 0 80px 0; /* spațiu pentru bottom nav pe mobile */
+  padding: 0 0 80px 0;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -85,7 +82,6 @@ body {
   transition: background-color var(--t-slow);
 }
 
-/* Tipografie display — titluri elegante Fraunces */
 h1, h2, h3, .app-title, #histTitle {
   font-family: var(--font-display);
   font-optical-sizing: auto;
@@ -94,9 +90,6 @@ h1, h2, h3, .app-title, #histTitle {
 }
 h1 { font-weight: 700; letter-spacing: -0.02em; }
 
-/* ══════════════════════════════════════════
-   MOD NOAPTE
-   ══════════════════════════════════════════ */
 body.night-mode {
   --cream: #12161c;
   --white: #1e2530;
@@ -181,7 +174,6 @@ body.night-mode *[style*="color: #5d4037"] { color: #f0ebe3 !important; }
 body.night-mode *[style*="border-color:#d1b490"],
 body.night-mode *[style*="border:1px solid #ddd"] { border-color: #3d4656 !important; }
 
-/* Night: Hartă */
 body.night-mode #hive-map {
   background-color: rgba(36,43,53,0.9) !important;
   background-image:
@@ -189,10 +181,8 @@ body.night-mode #hive-map {
     linear-gradient(90deg, rgba(61,70,86,0.5) 1px, transparent 1px) !important;
   border-color: #3d4656 !important;
 }
-/* body.night-mode .map-hive — eliminat, înlocuit cu .map-hive-pin */
 body.night-mode .map-marker span { background: rgba(0,0,0,0.8); color: #fff; border: 1px solid #3d4656; }
 
-/* Night: Bottom nav */
 body.night-mode #bottom-nav {
   background: rgba(26,31,38,0.97);
   border-color: rgba(255,255,255,0.06);
@@ -201,25 +191,21 @@ body.night-mode .bnav-btn { color: #8a9bb0; }
 body.night-mode .bnav-btn.active { color: var(--honey-light); }
 body.night-mode .bnav-btn.active .bnav-dot { background: var(--honey-light); }
 
-/* Night: Hive card modernizat */
 body.night-mode .hive-card { background: #242b35 !important; border-color: #3d4656 !important; }
 body.night-mode .hive-card-name,
 body.night-mode .hive-card-weight { color: #f0ebe3 !important; }
 body.night-mode .hive-card-meta { color: #8a9bb0 !important; }
 
-/* Night: nav desktop */
 body.night-mode #main-nav { background: rgba(26,31,38,0.97) !important; border-color: rgba(255,255,255,0.06) !important; }
 body.night-mode .nav-btn { color: #b0a898 !important; }
 body.night-mode .nav-btn:hover { background: rgba(212,134,11,0.12) !important; color: #f0ebe3 !important; }
 body.night-mode .nav-btn.active { background: rgba(212,134,11,0.2) !important; color: #f5c842 !important; }
 
-/* Night: dropdown user */
 body.night-mode .user-dropdown { background: rgba(26,31,38,0.98) !important; border-color: rgba(255,255,255,0.08) !important; }
 body.night-mode .mode-toggle { background: #2c3444 !important; color: #f0ebe3 !important; }
 body.night-mode .mode-toggle:hover { background: #3d4656 !important; }
 body.night-mode .user-dropdown span[style*="premium-brown"] { color: #f5c842 !important; }
 
-/* Night: modal stup */
 body.night-mode #histModal > div,
 body.night-mode #histBox { background: #1e2530 !important; border-color: #2d3545 !important; }
 body.night-mode .modal-tab { background: #2c3444 !important; color: #8a9bb0 !important; border-color: #3d4656 !important; }
@@ -232,7 +218,6 @@ body.night-mode .mini-stats,
 body.night-mode .mini-stats b { color: #b0a898 !important; }
 body.night-mode .chip-id { color: #8a9bb0 !important; }
 
-/* Night: card-box inline styles override */
 body.night-mode *[style*="background:#fdf8ef"],
 body.night-mode *[style*="background: #fdf8ef"],
 body.night-mode *[style*="background:#fff"],
@@ -243,7 +228,6 @@ body.night-mode *[style*="color: #2c3e50"],
 body.night-mode *[style*="color:#3d2200"],
 body.night-mode *[style*="color: #3d2200"] { color: #f0ebe3 !important; }
 
-/* Night: tabele admin */
 body.night-mode .adm-tab-bar { background: #1e2530 !important; border-color: #2d3545 !important; }
 body.night-mode .adm-tab { color: #8a9bb0 !important; }
 body.night-mode .adm-tab.active { background: #2c3444 !important; color: #f5c842 !important; border-color: #f5c842 !important; }
@@ -252,25 +236,21 @@ body.night-mode #admin-users-list td,
 body.night-mode #admin-users-list tr { background: #242b35 !important; border-color: #3d4656 !important; }
 body.night-mode .adm-search-input { background: #2c3444 !important; color: #f0ebe3 !important; border-color: #3d4656 !important; }
 
-/* Night: varroa box, quick-group */
 body.night-mode .varroa-box { background: #2c3444 !important; border-color: #3d4656 !important; color: #f0ebe3 !important; }
 body.night-mode .quick-group label { color: #b0a898 !important; }
 body.night-mode .quick-btn { background: #2c3444 !important; color: #b0a898 !important; border-color: #3d4656 !important; }
 body.night-mode .quick-btn.active { background: var(--honey) !important; color: #fff !important; border-color: var(--honey) !important; }
 
-/* Night: jurnal items */
 body.night-mode .jurnal-item,
 body.night-mode .modal-log-item { background: #242b35 !important; border-color: #3d4656 !important; color: #f0ebe3 !important; }
 body.night-mode .jurnal-item b,
 body.night-mode .modal-log-item b { color: #f5c842 !important; }
 
-/* Night: help page */
 body.night-mode *[style*="background:#f0fdf4"],
 body.night-mode *[style*="background: #f0fdf4"],
 body.night-mode *[style*="background:#fff5f5"],
 body.night-mode *[style*="background: #fff5f5"] { background-color: #2c3444 !important; color: #f0ebe3 !important; }
 
-/* ── Filtre jurnal ── */
 .jf-btn {
   padding: 5px 12px;
   border: 1.5px solid var(--wood-light);
@@ -288,10 +268,8 @@ body.night-mode *[style*="background: #fff5f5"] { background-color: #2c3444 !imp
 body.night-mode .jf-btn { background: #2c3444; border-color: #3d4656; color: #8a9bb0; }
 body.night-mode .jf-btn.active { background: var(--honey); color: #fff; border-color: var(--honey); }
 
-/* ── Sparkline pe card ── */
 .hive-sparkline { display:block; width:88%; height:28px; margin:3px auto 0; }
 
-/* ── Global search results dropdown ── */
 #global-search-results {
   position: fixed;
   top: 64px;
@@ -323,14 +301,10 @@ body.night-mode .gsr-item:hover { background: rgba(212,134,11,0.1); }
 body.night-mode .gsr-item { color: #f0ebe3; border-color: #2d3545; }
 body.night-mode .gsr-cat { background: rgba(0,0,0,0.2); color: #8a9bb0; }
 
-/* ── Swipe modal tab (mobile) ── */
 @media (max-width: 768px) {
   #histModal .modal-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; }
 }
 
-/* ══════════════════════════════════════════
-   TIPOGRAFIE
-   ══════════════════════════════════════════ */
 h1 {
   display: block;
   width: 100%;
@@ -362,9 +336,6 @@ h2 {
   margin: 16px 0 24px;
 }
 
-/* ══════════════════════════════════════════
-   CEAS & MENIU USER (TOP)
-   ══════════════════════════════════════════ */
 .top-left-clock {
   position: fixed;
   top: 18px; left: 18px;
@@ -466,9 +437,6 @@ h2 {
 }
 .logout-btn-top:hover { filter: brightness(1.08); }
 
-/* ══════════════════════════════════════════
-   BANNER-URI
-   ══════════════════════════════════════════ */
 #weather-alert {
   display: none;
   background: linear-gradient(135deg, var(--accent-red), #c0392b);
@@ -497,9 +465,6 @@ h2 {
   box-shadow: 0 2px 12px rgba(0,0,0,0.2);
 }
 
-/* ══════════════════════════════════════════
-   NAVIGARE PRINCIPALĂ (DESKTOP)
-   ══════════════════════════════════════════ */
 #main-nav {
   position: sticky;
   top: 14px;
@@ -544,7 +509,6 @@ h2 {
   0%   { background-position: 150% 0; }
   100% { background-position: -50% 0; }
 }
-/* Honey drip - creat din JS cu position:fixed pentru a depasi stacking context */
 .honey-drip {
   position: fixed;
   width: 7px;
@@ -562,9 +526,6 @@ h2 {
   100%    { height: 0;    opacity: 0;   margin-top: 14px; }
 }
 
-/* ══════════════════════════════════════════
-   BOTTOM NAVIGATION (MOBILE)
-   ══════════════════════════════════════════ */
 #bottom-nav {
   display: none;
   position: fixed;
@@ -614,9 +575,7 @@ h2 {
   transition: transform var(--t-fast);
 }
 .bnav-btn.active .bnav-icon { transform: scale(1.12); }
-.bnav-btn.active {
-  color: var(--honey);
-}
+.bnav-btn.active { color: var(--honey); }
 .bnav-dot {
   position: absolute;
   top: 0; left: 50%; transform: translateX(-50%);
@@ -629,8 +588,6 @@ h2 {
   background: linear-gradient(90deg, var(--honey), var(--honey-light));
   box-shadow: 0 2px 8px rgba(212,134,11,0.5);
 }
-
-/* Buton central special (inspecție rapidă) */
 .bnav-center-btn {
   width: 52px; height: 52px;
   border-radius: 50%;
@@ -645,9 +602,6 @@ h2 {
 .bnav-center-btn .bnav-icon { font-size: 1.4rem; }
 .bnav-center-btn.active { background: linear-gradient(135deg, var(--honey), var(--honey-light)); }
 
-/* ══════════════════════════════════════════
-   CONTAINER STUPI
-   ══════════════════════════════════════════ */
 #container {
   display: flex;
   flex-wrap: wrap;
@@ -659,7 +613,6 @@ h2 {
   position: relative;
 }
 
-/* ── HIVE WRAPPER (3D clasic, păstrat) ── */
 .hive-wrapper {
   width: 220px;
   display: flex;
@@ -675,7 +628,6 @@ h2 {
 .hive-wrapper.opening .roof { transform: translateY(-45px) rotate(8deg); opacity: 0; }
 .hive-wrapper.opening .wood-box { transform: scale(1.08); opacity: 0; }
 
-/* ── HIVE CARD (stil modern — alternativ la 3D) ── */
 .hive-card {
   background: var(--white);
   border-radius: var(--r-lg);
@@ -696,7 +648,6 @@ h2 {
 }
 .hive-card:active { transform: translateY(-1px); }
 
-/* Bara de status colorată sus */
 .hive-card-status-bar {
   height: 5px;
   width: 100%;
@@ -773,7 +724,6 @@ h2 {
 .hive-card-meta-item { display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .hive-card-meta-item span:first-child { font-size: 1rem; }
 
-/* ── BADGE SĂNĂTATE (comun cu 3D) ── */
 .health-badge {
   position: absolute;
   top: -10px; right: -10px;
@@ -798,7 +748,6 @@ h2 {
   box-shadow: 0 0 5px rgba(0,0,0,0.3);
 }
 
-/* ── STILURI STUP 3D (păstrate intact) ── */
 .roof {
   width: 108%; height: 45px;
   background: linear-gradient(180deg, var(--roof-highlight), var(--roof-shadow));
@@ -828,9 +777,6 @@ h2 {
 .mini-stats b { color: #2c1700; font-weight: 900; }
 .base { width: 104%; height: 20px; background: #000; border-radius: 0 0 6px 6px; }
 
-/* ══════════════════════════════════════════
-   MODAL ISTORIC
-   ══════════════════════════════════════════ */
 #histModal {
   position: fixed; inset: 0;
   z-index: 9998;
@@ -869,7 +815,6 @@ h2 {
 }
 #closeHist:hover { background: var(--accent-red); color: #fff; border-color: var(--accent-red); }
 
-/* Segmented control */
 .segmented-control {
   display: flex;
   background: #f0ece5;
@@ -895,9 +840,6 @@ h2 {
 }
 .chart-container { position: relative; height: 300px; width: 100%; margin-top: 14px; }
 
-/* ══════════════════════════════════════════
-   SECȚIUNI / PAGINI
-   ══════════════════════════════════════════ */
 .view-section { display: none; opacity: 0; }
 .view-section.active {
   display: block;
@@ -912,7 +854,6 @@ h2 {
 
 .page-container { max-width: 900px; margin: 0 auto; padding: 20px; }
 
-/* Card generic */
 .card-box {
   background: var(--white);
   padding: 22px;
@@ -926,7 +867,6 @@ h2 {
 }
 .card-box:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
 
-/* Statistici dashboard */
 .dashboard-stats {
   display: flex;
   justify-content: center;
@@ -945,7 +885,6 @@ h2 {
   text-align: center;
 }
 
-/* KPI cards */
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -983,7 +922,6 @@ h2 {
   letter-spacing: 0.5px;
 }
 
-/* ── Acțiuni & butoane ── */
 .actions { position: absolute; top: 18px; right: 18px; display: flex; gap: 8px; }
 .btn-icon {
   background: #f5f0e8;
@@ -1016,7 +954,6 @@ h2 {
 .btn-resolve:hover { filter: brightness(1.08); transform: translateY(-2px); box-shadow: 0 8px 22px rgba(16,172,132,0.4); }
 .btn-resolve:active { transform: translateY(0); }
 
-/* Buton principal generic */
 .btn-primary {
   background: linear-gradient(135deg, var(--honey), #e8970d);
   color: #fff;
@@ -1033,7 +970,6 @@ h2 {
 .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(212,134,11,0.4); }
 .btn-primary:active { transform: translateY(0); }
 
-/* Buton secundar */
 .btn-secondary {
   background: #f5f0e8;
   color: var(--premium-brown);
@@ -1048,11 +984,9 @@ h2 {
 }
 .btn-secondary:hover { background: var(--wood-light); }
 
-/* ── Grile ── */
 .dashboard-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 18px; }
 .input-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 10px; margin-bottom: 10px; }
 
-/* ── Inputuri generale ── */
 input, textarea, select {
   font-family: 'Nunito', sans-serif;
 }
@@ -1067,7 +1001,6 @@ input[type="file"] {
   cursor: pointer;
 }
 
-/* Search bar dashboard */
 #dashboard-search {
   width: 100%;
   max-width: 420px;
@@ -1090,9 +1023,6 @@ input[type="file"] {
   box-shadow: 0 0 0 3px rgba(212,134,11,0.12);
 }
 
-/* ══════════════════════════════════════════
-   HARTĂ STUPINĂ
-   ══════════════════════════════════════════ */
 #hive-map {
   position: relative;
   width: 100%;
@@ -1110,7 +1040,6 @@ input[type="file"] {
   box-shadow: inset 0 0 12px rgba(0,0,0,0.04), var(--shadow-sm);
 }
 
-/* Leaflet map container (când e activat) */
 #leaflet-map {
   width: 100%;
   height: 500px;
@@ -1120,7 +1049,6 @@ input[type="file"] {
   overflow: hidden;
 }
 
-/* Override stil Leaflet pentru tema caldă */
 .leaflet-popup-content-wrapper {
   border-radius: var(--r-md) !important;
   border: 2px solid var(--wood-mid) !important;
@@ -1129,12 +1057,7 @@ input[type="file"] {
 }
 .leaflet-popup-tip { background: var(--wood-mid) !important; }
 
-/* Markere draggable (harta custom) */
-/* ═══════════════════════════════════════
-   HARTA — ICONIȚE STUPI (SVG formă stup)
-   ═══════════════════════════════════════ */
 .map-hive {
-  /* Reset complet — SVG-ul inline definește aspectul vizual */
   position: absolute !important;
   background: none !important;
   background-image: none !important;
@@ -1166,14 +1089,6 @@ body.night-mode .map-hive > div > div:last-child {
   z-index: 200 !important;
 }
 .map-hive:active { cursor: grabbing !important; opacity: 0.9 !important; }
-/* Night mode label */
-body.night-mode .map-hive > div > div:last-child {
-  background: rgba(36,43,53,0.95) !important;
-  color: #f0ebe3 !important;
-}
-/* Noul pin SVG în formă de stup */
-/* Iconița stup pe hartă — SVG formă casă */
-/* .map-hive-pin removed — using .map-hive */
 
 .map-marker {
   position: absolute;
@@ -1196,9 +1111,6 @@ body.night-mode .map-hive > div > div:last-child {
 }
 .map-marker:active { transform: scale(1.2); z-index: 100; cursor: grabbing; }
 
-/* ══════════════════════════════════════════
-   PARTICULE & ALBINE
-   ══════════════════════════════════════════ */
 #health-tip {
   position: absolute;
   background: rgba(0,0,0,0.86);
@@ -1216,7 +1128,6 @@ body.night-mode .map-hive > div > div:last-child {
 .flying-bee { position: fixed; font-size: 26px; pointer-events: none; z-index: 10001; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.35)); }
 .flying-bee.hovering { animation: beeWiggle 1.5s infinite ease-in-out; }
 #queen-bee { will-change: left, top; }
-/* Compact frames for >10 */
 .frame-slot-compact { max-width: 32px !important; height: 72px !important; }
 .frame-slot-lbl-vert { writing-mode: vertical-rl; text-orientation: mixed; transform: rotate(180deg); font-size: 0.4rem !important; }
 
@@ -1231,9 +1142,6 @@ body.night-mode .map-hive > div > div:last-child {
   75%     { transform: scale(1.5) translate(-3px,2px); }
 }
 
-/* ══════════════════════════════════════════
-   GALERIE FOTO
-   ══════════════════════════════════════════ */
 .photo-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
@@ -1251,9 +1159,6 @@ body.night-mode .map-hive > div > div:last-child {
 .photo-grid img:hover { transform: scale(1.04); border-color: var(--honey); }
 .photo-label { font-size: 0.68rem; font-weight: 800; display: block; margin-top: 3px; opacity: 0.75; }
 
-/* ══════════════════════════════════════════
-   RAMĂ / CUIB
-   ══════════════════════════════════════════ */
 .frame-mapper {
   display: flex;
   justify-content: space-between;
@@ -1281,9 +1186,6 @@ body.night-mode .map-hive > div > div:last-child {
 .f-puiet  { background: #5d4037 !important; border: 2px solid #3e2723; color: #fff !important; }
 .f-ceara  { background: #fdfbf7 !important; border: 2px dashed #f1c40f; color: #d35400 !important; }
 
-/* ══════════════════════════════════════════
-   INSPECȚIE RAPIDĂ (QUICK BUTTONS)
-   ══════════════════════════════════════════ */
 .quick-group { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; align-items: center; }
 .quick-group label { font-weight: 800; min-width: 80px; }
 .quick-btn {
@@ -1313,9 +1215,6 @@ body.night-mode .map-hive > div > div:last-child {
   margin-top: 18px;
 }
 
-/* ══════════════════════════════════════════
-   JURNAL
-   ══════════════════════════════════════════ */
 .jurnal-group {
   margin-bottom: 14px;
   border: 1.5px solid var(--wood-mid);
@@ -1340,9 +1239,6 @@ body.night-mode .map-hive > div > div:last-child {
 .jurnal-group.open .jurnal-group-content { display: block; }
 .jurnal-group.open .jurnal-group-header { background: var(--wood-mid); color: #fff; }
 
-/* ══════════════════════════════════════════
-   INVENTAR
-   ══════════════════════════════════════════ */
 .inventory-section {
   margin-bottom: 18px;
   border: 1.5px solid var(--wood-mid);
@@ -1369,15 +1265,9 @@ body.night-mode .map-hive > div > div:last-child {
 .inventory-section.open .inventory-list-content { display: block; }
 .edit-btn { background: none; border: none; color: var(--accent-blue); cursor: pointer; font-size: 1.05rem; font-weight: 800; margin-right: 8px; }
 
-/* ══════════════════════════════════════════
-   MODALS MINI
-   ══════════════════════════════════════════ */
 .modal-mini-logs { text-align: left; margin-top: 14px; border-top: 1px solid #eee; padding-top: 14px; }
 .modal-log-item { padding: 8px; border-bottom: 1px dashed #eee; font-size: 0.83rem; }
 
-/* ══════════════════════════════════════════
-   MOD COSTUM (INSPECȚIE TABEL)
-   ══════════════════════════════════════════ */
 .inspection-table {
   width: 100%;
   border-collapse: collapse;
@@ -1418,7 +1308,6 @@ body.night-mode .map-hive > div > div:last-child {
 .big-check-btn.active-orange { background: var(--accent-orange); color: white; border-color: #d35400; box-shadow: 0 3px 10px rgba(230,126,34,0.28); }
 .big-check-btn.active-blue   { background: var(--accent-blue);   color: white; border-color: #2980b9; box-shadow: 0 3px 10px rgba(52,152,219,0.28); }
 
-/* Buton salvare flotant */
 .save-all-btn {
   position: fixed;
   bottom: 88px; right: 20px;
@@ -1436,9 +1325,6 @@ body.night-mode .map-hive > div > div:last-child {
 }
 .save-all-btn:hover { transform: scale(1.06); box-shadow: 0 8px 24px rgba(16,172,132,0.5); }
 
-/* ══════════════════════════════════════════
-   BELL & TASKS
-   ══════════════════════════════════════════ */
 .hive-task-bell {
   position: absolute; top: 30%; right: -25px;
   transform: translateY(-50%);
@@ -1469,6 +1355,9 @@ body.night-mode .map-hive > div > div:last-child {
   white-space: nowrap; letter-spacing: 0.5px;
   cursor: pointer; pointer-events: auto;
   transition: transform var(--t-fast);
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 .roire-alert-banner:hover { transform: translateX(-50%) scale(1.05); }
 
@@ -1499,9 +1388,6 @@ body.night-mode .map-hive > div > div:last-child {
 .bell-task-item:last-child { border-bottom: none; }
 .bell-task-item:hover { background: #f5f0e8; color: var(--accent-green); }
 
-/* ══════════════════════════════════════════
-   ALERT CARDS
-   ══════════════════════════════════════════ */
 .alert-card {
   background: var(--white);
   border: 1.5px solid var(--wood-light);
@@ -1516,64 +1402,31 @@ body.night-mode .map-hive > div > div:last-child {
 .alert-card.warning  { border-left: 4px solid var(--honey); }
 .alert-card.info     { border-left: 4px solid var(--accent-blue); }
 
-/* ══════════════════════════════════════════
-   SUIT MODE (MOD COSTUM ACTIV)
-   ══════════════════════════════════════════ */
 .suit-mode-active .nav-btn { padding: 10px 12px; font-size: 0.78rem; }
 
-/* ══════════════════════════════════════════
-   ASCUNDERE BUTON INSPECȚIE PE DESKTOP
-   ══════════════════════════════════════════ */
 #nav-btn-table { display: none !important; }
 
-/* ══════════════════════════════════════════
-   MEDIA QUERIES
-   ══════════════════════════════════════════ */
-
-/* Tablete */
 @media (max-width: 1024px) {
   #nav-btn-table { display: block !important; }
 }
 
-/* Mobile */
 @media (max-width: 768px) {
   body { padding-bottom: 80px; }
-
-  /* Ascunde nav desktop, arată bottom nav */
   #main-nav    { display: none !important; }
   #bottom-nav  { display: flex !important; }
-
-  /* Ascunde ceasul pe mobile */
   .top-left-clock { display: none; }
-
-  /* Titlu mai mic */
   h1 { font-size: 1.9rem; margin-top: 70px; }
-
-  /* Menu user mai sus */
   .user-menu-container { top: 10px; right: 10px; }
-
-  /* Grid dashboard */
   .dashboard-grid { grid-template-columns: 1fr; }
-
-  /* KPI grid — 2 pe rând pe mobile */
   .kpi-grid { grid-template-columns: repeat(2, 1fr); }
-
-  /* Container stupi */
   #container { gap: 16px; padding: 0 12px; }
   .hive-wrapper { width: 160px; }
-
-  /* Card-box padding redus */
   .card-box { padding: 16px; }
   .page-container { padding: 14px; }
-
-  /* Buton salvare mai sus pe mobile (deasupra bottom nav) */
   .save-all-btn { bottom: 82px; right: 16px; }
-
-  /* Hartă mai mică */
   #hive-map, #leaflet-map { height: 360px; }
 }
 
-/* Foarte mic */
 @media (max-width: 380px) {
   h1 { font-size: 1.6rem; }
   .kpi-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -1581,16 +1434,12 @@ body.night-mode .map-hive > div > div:last-child {
   .bnav-icon { font-size: 1.2rem; }
 }
 
-/* Landscap mobile */
 @media (max-width: 768px) and (orientation: landscape) {
   #bottom-nav { height: 54px; }
   .bnav-inner { height: 54px; }
   body { padding-bottom: 60px; }
 }
 
-/* ══════════════════════════════════════════
-   SORT BUTTONS DASHBOARD
-   ══════════════════════════════════════════ */
 .sort-btn {
   padding: 6px 12px;
   border: 1.5px solid var(--wood-light);
@@ -1609,14 +1458,8 @@ body.night-mode .map-hive > div > div:last-child {
 body.night-mode .sort-btn         { background:#2c3444; border-color:#3d4656; color:#8a9bb0; }
 body.night-mode .sort-btn-active  { background:var(--honey); color:#fff !important; border-color:var(--honey); }
 
-/* ══════════════════════════════════════════
-   SWIPE ACTIONS PANEL
-   ══════════════════════════════════════════ */
 .swipe-actions-panel button:active { filter: brightness(0.88); }
 
-/* ══════════════════════════════════════════
-   ACTIVITY CALENDAR
-   ══════════════════════════════════════════ */
 #activity-calendar {
   background: var(--white);
   border: 1.5px solid var(--wood-light);
@@ -1630,9 +1473,6 @@ body.night-mode #activity-calendar {
   border-color: #3d4656;
 }
 
-/* ══════════════════════════════════════════
-   TOAST CONTAINER
-   ══════════════════════════════════════════ */
 #toast-container { pointer-events: none; }
 @media (max-width: 768px) {
   #toast-container {
@@ -1644,9 +1484,6 @@ body.night-mode #activity-calendar {
   }
 }
 
-/* ══════════════════════════════════════════
-   SESSION WARNING BANNER
-   ══════════════════════════════════════════ */
 #session-warning-banner {
   pointer-events: auto;
 }
@@ -1658,9 +1495,6 @@ body.night-mode #activity-calendar {
   }
 }
 
-/* ══════════════════════════════════════════
-   LEAFLET MAP OVERRIDES
-   ══════════════════════════════════════════ */
 #leaflet-map { position: relative; z-index: 1; }
 .leaflet-container { font-family: 'Nunito', sans-serif !important; }
 .leaflet-popup-content-wrapper {
@@ -1679,11 +1513,6 @@ body.night-mode #activity-calendar {
 body.night-mode .leaflet-tile { filter: brightness(0.7) invert(1) hue-rotate(180deg); }
 body.night-mode .leaflet-popup-content-wrapper { background: #242b35 !important; color: #f0ebe3 !important; }
 
-/* ══════════════════════════════════════════
-   ICONIȚE STUPI HARTĂ — REDESIGN COMPACT
-   ══════════════════════════════════════════ */
-
-/* Bell task overlay */
 #bell-task-overlay .btn-resolve {
   transition: all 0.15s;
 }
@@ -1691,7 +1520,6 @@ body.night-mode .leaflet-popup-content-wrapper { background: #242b35 !important;
   filter: brightness(1.08);
   transform: translateY(-1px);
 }
-/* Confirm modal */
 #confirm-modal > div {
   animation: cmSlideIn 0.22s cubic-bezier(0.16,1,0.3,1);
 }
@@ -1699,7 +1527,6 @@ body.night-mode .leaflet-popup-content-wrapper { background: #242b35 !important;
   from { opacity:0; transform: scale(0.94) translateY(10px); }
   to   { opacity:1; transform: scale(1) translateY(0); }
 }
-/* Quick note bottom sheet */
 #quick-note-modal > div {
   animation: sheetUp 0.28s cubic-bezier(0.16,1,0.3,1);
 }
@@ -1719,11 +1546,6 @@ body.night-mode #confirm-modal > div { background: #242b35; }
 body.night-mode #quick-note-modal > div { background: #242b35; }
 body.night-mode #quick-note-modal textarea { background: #2c3444; border-color: #3d4656; color: #f0ebe3; }
 
-
-
-/* ══════════════════════════════════════════
-   SETTINGS MODAL
-   ══════════════════════════════════════════ */
 .settings-row {
   display: flex;
   align-items: center;
@@ -1737,7 +1559,6 @@ body.night-mode #quick-note-modal textarea { background: #2c3444; border-color: 
 .settings-row:active { background: rgba(212,134,11,0.1); }
 body.night-mode .settings-row:hover { background: rgba(212,134,11,0.08); }
 
-/* Night mode: Settings modal sheet */
 body.night-mode #settings-sheet {
   background: #1e2530 !important;
   color: #f0ebe3;
@@ -1757,7 +1578,6 @@ body.night-mode #apiary-lon-input {
   border-color: #3d4656 !important;
 }
 
-/* Night mode: Mobile more menu (sheet de jos) */
 body.night-mode #mobile-more-menu > div {
   background: #1e2530 !important;
 }
@@ -1770,95 +1590,10 @@ body.night-mode #mobile-more-menu .btn-primary {
   background: var(--wood-mid) !important;
 }
 
-/* ── Filtre jurnal ── */
-.jf-btn {
-  padding: 5px 12px;
-  border: 1.5px solid var(--wood-light);
-  border-radius: var(--r-full);
-  background: #fff;
-  font-family: inherit;
-  font-size: 0.76rem;
-  font-weight: 800;
-  cursor: pointer;
-  color: var(--text-muted);
-  transition: all var(--t-fast);
-}
-.jf-btn:hover { border-color: var(--honey); color: var(--honey); }
-.jf-btn.active { background: var(--honey); color: #fff; border-color: var(--honey); box-shadow: 0 3px 10px rgba(212,134,11,0.3); }
-body.night-mode .jf-btn { background: #2c3444; border-color: #3d4656; color: #8a9bb0; }
-body.night-mode .jf-btn.active { background: var(--honey); color: #fff; border-color: var(--honey); }
-
-/* ── Global search results dropdown ── */
-#global-search-results {
-  background: var(--white);
-  border: 1.5px solid var(--wood-light);
-  border-radius: var(--r-lg);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.14);
-  z-index: 2000;
-  max-height: 420px;
-  overflow-y: auto;
-  display: none;
-}
-#global-search-results.show { display: block; }
-.gsr-item {
-  padding: 10px 16px;
-  cursor: pointer;
-  border-bottom: 1px solid rgba(209,180,144,0.2);
-  font-size: 0.85rem;
-  transition: background 0.12s;
-  line-height: 1.4;
-}
-.gsr-item:hover { background: rgba(212,134,11,0.06); }
-.gsr-item:last-child { border-bottom: none; }
-.gsr-cat {
-  font-size: 0.68rem;
-  font-weight: 800;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 8px 16px 4px;
-  background: rgba(209,180,144,0.08);
-}
-body.night-mode #global-search-results { background: #1e2530; border-color: #2d3545; }
-body.night-mode .gsr-item:hover { background: rgba(212,134,11,0.1); }
-body.night-mode .gsr-item { color: #f0ebe3; border-color: #2d3545; }
-body.night-mode .gsr-cat { background: rgba(0,0,0,0.2); color: #8a9bb0; }
-
-/* Night: dark mode additions */
-body.night-mode #main-nav { background: rgba(26,31,38,0.97) !important; border-color: rgba(255,255,255,0.06) !important; }
-body.night-mode .nav-btn { color: #b0a898 !important; }
-body.night-mode .nav-btn:hover { background: rgba(212,134,11,0.12) !important; color: #f0ebe3 !important; }
-body.night-mode .nav-btn.active { background: rgba(212,134,11,0.2) !important; color: #f5c842 !important; }
-body.night-mode .user-dropdown { background: rgba(26,31,38,0.98) !important; border-color: rgba(255,255,255,0.08) !important; }
-body.night-mode .mode-toggle { background: #2c3444 !important; color: #f0ebe3 !important; }
-body.night-mode .mode-toggle:hover { background: #3d4656 !important; }
-body.night-mode #histModal > div,
-body.night-mode #histBox { background: #1e2530 !important; border-color: #2d3545 !important; }
-body.night-mode .modal-tab { background: #2c3444 !important; color: #8a9bb0 !important; border-color: #3d4656 !important; }
-body.night-mode .modal-tab.active { background: #3d4656 !important; color: #f5c842 !important; }
-body.night-mode .wood-box { background: linear-gradient(160deg, #2c3444 0%, #242b35 60%, #1e2530 100%) !important; border-color: #3d4656 !important; }
-body.night-mode .layer-top, body.night-mode .layer-mid, body.night-mode .layer-bot { color: #f0ebe3 !important; }
-body.night-mode .mini-stats, body.night-mode .mini-stats b { color: #b0a898 !important; }
-body.night-mode .chip-id { color: #8a9bb0 !important; }
-body.night-mode *[style*="background:#fdf8ef"], body.night-mode *[style*="background: #fdf8ef"],
-body.night-mode *[style*="background:#fff"], body.night-mode *[style*="background: #fff"] { background-color: #2c3444 !important; }
-body.night-mode *[style*="color:#2c3e50"], body.night-mode *[style*="color:#3d2200"] { color: #f0ebe3 !important; }
-body.night-mode .adm-tab-bar { background: #1e2530 !important; border-color: #2d3545 !important; }
-body.night-mode .adm-tab { color: #8a9bb0 !important; }
-body.night-mode .adm-tab.active { background: #2c3444 !important; color: #f5c842 !important; border-color: #f5c842 !important; }
-body.night-mode .varroa-box { background: #2c3444 !important; border-color: #3d4656 !important; color: #f0ebe3 !important; }
-body.night-mode .quick-group label { color: #b0a898 !important; }
-body.night-mode .quick-btn { background: #2c3444 !important; color: #b0a898 !important; border-color: #3d4656 !important; }
-body.night-mode .quick-btn.active { background: var(--honey) !important; color: #fff !important; border-color: var(--honey) !important; }
-body.night-mode .jurnal-item, body.night-mode .modal-log-item { background: #242b35 !important; border-color: #3d4656 !important; color: #f0ebe3 !important; }
-body.night-mode .jurnal-item b, body.night-mode .modal-log-item b { color: #f5c842 !important; }
-body.night-mode *[style*="background:#f0fdf4"], body.night-mode *[style*="background:#fff5f5"] { background-color: #2c3444 !important; color: #f0ebe3 !important; }
 /* ════════════════════════════════════════════════════════
    ✦ DESIGN SYSTEM v3.0 "GOLDEN HOUR" — REFINEMENTS
-   Premium overrides — cascada câștigă (vin ultimele)
    ════════════════════════════════════════════════════════ */
 
-/* ── NAV DESKTOP — sticla rafinată, fără shimmer agresiv ── */
 #main-nav {
   background: rgba(251,247,240,0.82);
   border: 1px solid rgba(200,129,10,0.14);
@@ -1885,7 +1620,6 @@ body.night-mode *[style*="background:#f0fdf4"], body.night-mode *[style*="backgr
 }
 .nav-btn.active:hover { color: #fff; }
 
-/* ── CARDURI — curate, umbre stratificate, accent superior ── */
 .card-box {
   background: var(--white);
   border: 1px solid rgba(156,125,84,0.16);
@@ -1905,7 +1639,6 @@ body.night-mode *[style*="background:#f0fdf4"], body.night-mode *[style*="backgr
 }
 .card-box:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
 
-/* ── HIVE CARD — premium, hover cu glow miere ── */
 .hive-card {
   border: 1px solid rgba(156,125,84,0.18);
   border-radius: var(--r-md);
@@ -1929,7 +1662,6 @@ body.night-mode *[style*="background:#f0fdf4"], body.night-mode *[style*="backgr
   letter-spacing: -0.02em;
 }
 
-/* ── KPI CARDS — display font pe valori ── */
 .kpi-value {
   font-family: var(--font-display);
   font-weight: 700;
@@ -1943,7 +1675,6 @@ body.night-mode *[style*="background:#f0fdf4"], body.night-mode *[style*="backgr
 }
 .kpi-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
 
-/* ── BUTOANE — finisaj premium ── */
 .btn-resolve, .btn-primary {
   font-weight: 800;
   letter-spacing: 0.01em;
@@ -1958,14 +1689,12 @@ body.night-mode *[style*="background:#f0fdf4"], body.night-mode *[style*="backgr
 }
 .btn-resolve:active, .btn-primary:active { transform: translateY(0); }
 
-/* ── AVATAR USER — inel chihlimbar ── */
 .user-avatar-btn {
   background: linear-gradient(135deg, var(--honey) 0%, var(--honey-light) 100%);
   box-shadow: 0 2px 10px rgba(200,129,10,0.28), 0 1px 0 rgba(255,255,255,0.3) inset;
   border: 2px solid rgba(255,255,255,0.5);
 }
 
-/* ── BOTTOM NAV — sticla caldă ── */
 #bottom-nav {
   background: rgba(251,247,240,0.94);
   border-top: 1px solid rgba(200,129,10,0.12);
@@ -1975,7 +1704,6 @@ body.night-mode *[style*="background:#f0fdf4"], body.night-mode *[style*="backgr
 .bnav-btn.active { color: var(--honey-deep); }
 .bnav-btn.active .bnav-dot { background: var(--honey); }
 
-/* ── WEATHER BOX — card chihlimbar subtil ── */
 .weather-box {
   background: linear-gradient(135deg, rgba(232,181,61,0.1) 0%, rgba(200,129,10,0.06) 100%);
   border: 1px solid rgba(200,129,10,0.16);
@@ -1983,7 +1711,6 @@ body.night-mode *[style*="background:#f0fdf4"], body.night-mode *[style*="backgr
   border-radius: var(--r-sm);
 }
 
-/* ── TITLURI SECȚIUNI — Fraunces, dimensiune editorială ── */
 .page-container h2, .view-section h2 {
   font-family: var(--font-display);
   font-weight: 600;
@@ -1992,10 +1719,8 @@ body.night-mode *[style*="background:#f0fdf4"], body.night-mode *[style*="backgr
   color: var(--premium-brown);
 }
 
-/* ── MODAL STUP — titlu elegant ── */
 #histTitle { font-weight: 700; font-size: 1.4rem; }
 
-/* ── SEGMENTED CONTROL — finisaj ── */
 .seg-btn { font-weight: 700; transition: all var(--t-fast); }
 .seg-btn.active {
   background: #fff;
@@ -2003,7 +1728,6 @@ body.night-mode *[style*="background:#f0fdf4"], body.night-mode *[style*="backgr
   box-shadow: 0 2px 6px rgba(74,53,40,0.1);
 }
 
-/* ── SCROLLBAR personalizat ── */
 ::-webkit-scrollbar { width: 11px; height: 11px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
@@ -2014,17 +1738,14 @@ body.night-mode *[style*="background:#f0fdf4"], body.night-mode *[style*="backgr
 }
 ::-webkit-scrollbar-thumb:hover { background: rgba(200,129,10,0.5); background-clip: content-box; }
 
-/* ── SELECȚIE TEXT ── */
 ::selection { background: rgba(232,181,61,0.35); color: var(--premium-brown); }
 
-/* ── Page load: staggered fade pentru carduri ── */
 @keyframes cardRise {
   from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 .view-section.active .card-box { animation: cardRise 0.5s var(--t-slow) backwards; }
 
-/* ── NIGHT MODE v3 — recalibrat pentru noile tokens ── */
 body.night-mode {
   --honey:          #e8b53d;
   --honey-deep:     #d4a02e;
@@ -2049,8 +1770,7 @@ body.night-mode .weather-box {
 }
 
 /* ════════════════════════════════════════════════════════
-   WCAG 2.1 — Touch Targets Minime (44×44px)
-   Esential pentru lucrul la stup cu manusi
+   WCAG 2.1 — Touch Targets Minime (44x44px)
    ════════════════════════════════════════════════════════ */
 .seg-btn {
   min-height: 44px;
@@ -2083,9 +1803,119 @@ body.night-mode .weather-box {
 }
 
 /* ════════════════════════════════════════════════════════
-   SQL INDEX HINTS (comentarii pentru DBA)
-   Rulati manual in MySQL dupa deploy:
+   SQL INDEX HINTS
    ALTER TABLE mp_telemetry_history ADD INDEX idx_chip_ts (chip_id, ts DESC);
    ALTER TABLE mp_hive_readings ADD INDEX idx_chip_id (chip_id);
    ALTER TABLE mp_jurnal ADD INDEX idx_stup (stup), ADD INDEX idx_user (user);
    ════════════════════════════════════════════════════════ */
+
+/* ════════════════════════════════════════════════════════
+   MP CUSTOM EMOJI / ASSET IMAGES
+   Imagini custom integrate nativ in UI — MiereaPofta v2
+   ════════════════════════════════════════════════════════ */
+
+/* Inline in bannere (swarm alert etc.) */
+.mp-emoji-inline {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  vertical-align: middle;
+  margin-right: 4px;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.35));
+  flex-shrink: 0;
+}
+
+/* Weather widget — vant si umiditate */
+.mp-emoji-weather {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  vertical-align: middle;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));
+  flex-shrink: 0;
+}
+
+/* Weather alert banner reasons */
+.mp-emoji-reason {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  vertical-align: middle;
+  margin-right: 2px;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));
+}
+
+/* Inventory category headers */
+.mp-emoji-cat {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  vertical-align: middle;
+  margin-right: 6px;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.25));
+  transition: transform 0.2s ease;
+}
+.inventory-section h4:hover .mp-emoji-cat {
+  transform: scale(1.15) rotate(-5deg);
+}
+
+/* Inventory item per-row icons */
+.mp-emoji-inv-item {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  flex-shrink: 0;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.18));
+  border-radius: 6px;
+}
+
+/* Harvest list — tip miere */
+.mp-emoji-harvest {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 5px rgba(0,0,0,0.22));
+  transition: transform 0.2s ease;
+}
+.card-box:hover .mp-emoji-harvest {
+  transform: scale(1.12);
+}
+
+/* Hive card status strip */
+.mp-status-strip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+.mp-emoji-status {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+  transition: transform 0.25s ease, filter 0.25s ease;
+  cursor: help;
+}
+.mp-emoji-status:hover {
+  transform: scale(1.3) translateY(-3px);
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4));
+}
+
+/* Inventory card hover subtle */
+.mp-inv-item-card {
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.mp-inv-item-card:hover {
+  box-shadow: 0 3px 12px rgba(212,134,11,0.15) !important;
+  transform: translateY(-1px);
+}
+
+/* Night mode adjustments */
+body.night-mode .mp-emoji-cat,
+body.night-mode .mp-emoji-status,
+body.night-mode .mp-emoji-harvest {
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)) brightness(0.92);
+}
