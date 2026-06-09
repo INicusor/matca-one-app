@@ -1,22 +1,8 @@
 ---
 deployment:
   tasks:
-    - export WEBPATH=/home/danc/public_html/matca.one/
-    - /bin/mkdir -p $WEBPATH
-    - /bin/mkdir -p $WEBPATH/views
-    - /bin/mkdir -p $WEBPATH/assets
+    - export WEBPATH=/home/danc/public_html/MPDashboard
     - /bin/mkdir -p $WEBPATH/admin_console
     - /bin/mkdir -p $WEBPATH/admin_console/assets
-    - /bin/mkdir -p $WEBPATH/Arduino\ Firmware
-    - /bin/cp -f .htaccess $WEBPATH/ 2>/dev/null || true
-    - /bin/cp -f .gitattributes $WEBPATH/ 2>/dev/null || true
-    - /bin/cp -f *.php $WEBPATH/ 2>/dev/null || true
-    - /bin/cp -f *.css $WEBPATH/ 2>/dev/null || true
-    - /bin/cp -f *.png $WEBPATH/ 2>/dev/null || true
-    - /bin/cp -f sw.js $WEBPATH/ 2>/dev/null || true
-    - /bin/cp -f manifest.json $WEBPATH/ 2>/dev/null || true
-    - /bin/cp -f version.txt $WEBPATH/ 2>/dev/null || true
-    - /bin/cp -f views/*.php $WEBPATH/views/ 2>/dev/null || true
-    - /bin/cp -f assets/* $WEBPATH/assets/ 2>/dev/null || true
     - /bin/cp -f admin_console/*.php $WEBPATH/admin_console/ 2>/dev/null || true
     - /bin/cp -Rf admin_console/assets/* $WEBPATH/admin_console/assets/ 2>/dev/null || true
