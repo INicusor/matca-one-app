@@ -1,0 +1,8 @@
+---
+deployment:
+  tasks:
+    - export OTAPATH=/home/danc/public_html/ota/ESP32_4G/
+    - /bin/mkdir -p $OTAPATH
+    - /bin/cp -f ota/ESP32_4G/firmware.bin $OTAPATH
+    - /bin/cp -f ota/ESP32_4G/firmware.sha256 $OTAPATH
+    - /bin/cp -f ota/ESP32_4G/version.txt $OTAPATH
