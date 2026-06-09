@@ -4,5 +4,15 @@ deployment:
     - export WEBPATH=/home/danc/public_html/MPDashboard
     - /bin/mkdir -p $WEBPATH/admin_console
     - /bin/mkdir -p $WEBPATH/admin_console/assets
+    - /bin/mkdir -p $WEBPATH/views
+    - /bin/mkdir -p $WEBPATH/uploads
+    - /bin/cp -f app.js $WEBPATH/app.js 2>/dev/null || true
+    - /bin/cp -f style.css $WEBPATH/style.css 2>/dev/null || true
+    - /bin/cp -f night_additions.css $WEBPATH/night_additions.css 2>/dev/null || true
+    - /bin/cp -f index.php $WEBPATH/index.php 2>/dev/null || true
+    - /bin/cp -f backend.php $WEBPATH/backend.php 2>/dev/null || true
+    - /bin/cp -f sw.js $WEBPATH/sw.js 2>/dev/null || true
+    - /bin/cp -f manifest.json $WEBPATH/manifest.json 2>/dev/null || true
+    - /bin/cp -f views/*.php $WEBPATH/views/ 2>/dev/null || true
     - /bin/cp -f admin_console/*.php $WEBPATH/admin_console/ 2>/dev/null || true
     - /bin/cp -Rf admin_console/assets/* $WEBPATH/admin_console/assets/ 2>/dev/null || true
