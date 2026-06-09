@@ -57,16 +57,23 @@ function admin_current_role() {
 // ── Admins JSON ───────────────────────────────────────────────
 function load_admins() {
     if (!file_exists(ADMINS_FILE)) {
+        // IMPORTANT: La prima instalare se genereaza automat o parola aleatorie
+        // Verifica fisierul admins.json creat pe server si schimba parola imediat!
+        $randomPass = bin2hex(random_bytes(8));
         $default = [
             'superadmin' => [
-                'password' => password_hash('Matca2024!', PASSWORD_BCRYPT),
+                'password' => password_hash($randomPass, PASSWORD_BCRYPT),
                 'role'     => 'superadmin',
-                'email'    => 'alerts@soul2soul.ro',
+                'email'    => 'admin@yourdomain.com',
                 'name'     => 'Super Administrator',
                 'created'  => date('Y-m-d H:i:s'),
             ]
         ];
         file_put_contents(ADMINS_FILE, json_encode($default, JSON_PRETTY_PRINT));
+        // Salveaza parola generata intr-un fisier temporar pe server
+        file_put_contents(ADMIN_CONSOLE_ROOT . '/admin_init_pass.txt',
+            "Parola initiala superadmin: $randomPass\nSterge acest fisier dupa ce ai notat parola!\nGenerat: " . date('Y-m-d H:i:s')
+        );
         return $default;
     }
     $d = json_decode(file_get_contents(ADMINS_FILE), true);
