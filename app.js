@@ -1,1 +1,1 @@
-placeholder - will be replaced
+// See assets/app.js for the real application code
