@@ -198,9 +198,10 @@ async function loadDashboard() {
             badge.style.display = 'none';
         }
 
-        // Activity chart
-        const labels = Object.keys(d.activity || d.activity_chart || {});
-        const vals   = Object.values(d.activity || d.activity_chart || {});
+        // Activity chart — suporta atat 'activity' cat si 'activity_chart' din API
+        const activityData = d.activity || d.activity_chart || {};
+        const labels = Object.keys(activityData);
+        const vals   = Object.values(activityData);
         if (activityChart) activityChart.destroy();
         activityChart = new Chart(
             document.getElementById('activity-chart').getContext('2d'),
@@ -227,7 +228,6 @@ async function loadDashboard() {
         );
     } catch(e) {}
 
-    // Grafic greutate stupi
     loadWeightChart();
 }
 
@@ -309,7 +309,6 @@ function editHive(h) {
     document.getElementById('hm-maintenance').checked = !!h.maintenance;
     document.getElementById('hive-modal-title').textContent = 'Editeaza: ' + h.nickname;
 
-    // Populate controller dropdown
     const sel = document.getElementById('hm-controller');
     sel.innerHTML = '<option value="">-- Nu muta --</option>';
     controllersData.forEach(c => {
@@ -320,8 +319,8 @@ function editHive(h) {
 }
 
 async function saveHiveMeta() {
-    const chipID     = document.getElementById('hm-chipid').value;
-    const newCtrl    = document.getElementById('hm-controller').value;
+    const chipID  = document.getElementById('hm-chipid').value;
+    const newCtrl = document.getElementById('hm-controller').value;
     const body = {
         chipID,
         nickname:    document.getElementById('hm-nickname').value,
@@ -396,7 +395,6 @@ async function loadControllers() {
           </div>
           <div style="display:flex;gap:24px;font-size:13px;color:var(--text-secondary);margin-bottom:12px">
             <span>Stupi: <strong>${c.hive_count}</strong></span>
-            <span>Firmware: <strong>${esc(c.firmware||'-')}</strong></span>
             <span>IP: <strong>${esc(c.ip||'-')}</strong></span>
             <span>Ultima activitate: <strong>${fmtTime(c.lastSeen)}</strong></span>
           </div>
@@ -427,28 +425,18 @@ async function loadAlerts() {
         const r = await api('get_alerts');
         const { active, resolved } = r.data;
 
-        document.getElementById('active-alerts-count').textContent = active.length;
-
         const activeEl = document.getElementById('active-alerts-list');
-        activeEl.innerHTML = active.length ? active.map(a => `
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;border-bottom:1px solid var(--border-light)">
-              <div>
-                <div style="font-weight:600;font-size:13px">${esc(a.hive_name||a.stup)}</div>
-                <div style="font-size:12px;color:var(--text-muted)">${esc(a.msg||'')} &middot; ${a.date||''}</div>
-              </div>
-              <button class="btn btn-success btn-sm" onclick="resolveAlert('${a.id}')">&#10003;</button>
-            </div>`).join('')
-          : '<div class="empty-state"><p>Nicio alerta activa</p></div>';
-
-        const resEl = document.getElementById('resolved-alerts-list');
-        resEl.innerHTML = resolved.length ? resolved.map(a => `
-            <div style="padding:8px 12px;border-bottom:1px solid var(--border-light);font-size:12px">
-              <span style="color:var(--text-muted)">${a.date}</span>
-              <strong style="margin:0 6px">${esc(a.stup)}</strong>
-              <span style="color:var(--text-secondary)">${esc(a.msg||'')}</span>
-              <span style="color:var(--green);margin-left:6px">&#10003; ${esc(a.user)}</span>
-            </div>`).join('')
-          : '<div class="empty-state"><p>Nicio alerta rezolvata</p></div>';
+        if (activeEl) {
+            activeEl.innerHTML = active.length ? active.map(a => `
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;border-bottom:1px solid var(--border-light)">
+                  <div>
+                    <div style="font-weight:600;font-size:13px">${esc(a.hive_name||a.stup)}</div>
+                    <div style="font-size:12px;color:var(--text-muted)">${esc(a.msg||'')} · ${a.date||''}</div>
+                  </div>
+                  <button class="btn btn-success btn-sm" onclick="resolveAlert('${a.id}')">&#10003;</button>
+                </div>`).join('')
+              : '<div class="empty-state"><p>Nicio alerta activa</p></div>';
+        }
     } catch(e) {}
 }
 
@@ -481,7 +469,6 @@ async function loadJurnal() {
         const r = await api('get_jurnal', 'GET', { page: jurnalPage, limit: 50, stup, user, filter });
         const { items, total, pages } = r.data;
 
-        // Populeaza filtre
         const stupi = [...new Set(items.map(j => j.stup).filter(Boolean))].sort();
         const useri = [...new Set(items.map(j => j.user).filter(Boolean))].sort();
         populateSelect('jurnal-filter-stup', stupi, 'Toti stupii');
@@ -518,7 +505,6 @@ async function loadHarvest() {
         const r = await api('get_harvest', 'GET', { year });
         const { harvest, expenses, total_kg, total_ron, total_exp, profit } = r.data;
 
-        // Populam filtrele de an
         const years = [...new Set(harvest.map(h => (h.date||'').split('.')[2]?.trim()).filter(Boolean))].sort().reverse();
         populateSelect('harvest-filter-year', years, 'Toti anii');
 
@@ -550,7 +536,6 @@ async function loadHarvest() {
               <td><button class="btn btn-danger btn-sm btn-icon" onclick="deleteExpenseRow('${e.id}')">&#128465;</button></td>
             </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted)">Nicio cheltuiala</td></tr>';
 
-        // ROI per stup
         const byStup = {};
         harvest.forEach(h => {
             if (!byStup[h.stup]) byStup[h.stup] = { kg:0, venit:0, chelt:0 };
@@ -735,14 +720,12 @@ function openUserModal(username = null) {
     document.getElementById('um-is-admin').checked   = false;
     document.getElementById('um-can-manual').checked = false;
 
-    // Hive checkboxes
     const hivesDiv = document.getElementById('um-hives-checkboxes');
     hivesDiv.innerHTML = Object.entries(allHiveNames).map(([id, name]) =>
         `<label class="form-check" style="font-size:12px">
           <input type="checkbox" value="${id}" name="um-hive-cb"> ${esc(name)}
         </label>`).join('');
 
-    // Controllers checkboxes
     const ctrlDiv = document.getElementById('um-controllers-checkboxes');
     ctrlDiv.innerHTML = controllersData.map(c =>
         `<label class="form-check" style="font-size:12px">
@@ -760,7 +743,6 @@ async function editUser(username) {
     document.getElementById('um-email').value        = u.email || '';
     document.getElementById('um-is-admin').checked   = u.is_admin;
     document.getElementById('um-can-manual').checked = u.can_manage_manual;
-    // Bifeaza stupii
     document.querySelectorAll('[name="um-hive-cb"]').forEach(cb => {
         cb.checked = (u.hives||[]).includes(cb.value);
     });
@@ -810,15 +792,13 @@ async function loadDbStats() {
         const r = await api('get_db_stats');
         const { tables, size_mb } = r.data;
 
-        // Table selector
         const listEl = document.getElementById('db-table-list');
         listEl.innerHTML = Object.entries(tables).map(([t, n]) => `
-            <div class="db-table-item" onclick="selectTable('${t}')" id="dbt-${t}">
+            <div class="db-table-item" onclick="selectTable('${t}')" id="dbt-${t.replace(/[^a-z0-9]/g,'_')}">
               <div class="tbl-name">${t}</div>
               <div class="tbl-count">${n !== null ? n + ' rows' : 'N/A'}</div>
             </div>`).join('');
 
-        // Stats grid
         const statsEl = document.getElementById('db-stats-grid');
         statsEl.innerHTML = Object.entries(tables).map(([t, n]) => `
             <div class="db-table-item">
@@ -834,7 +814,7 @@ function selectTable(table) {
     currentTable = table;
     dbOffset = 0;
     document.querySelectorAll('.db-table-item').forEach(el => el.classList.remove('active'));
-    document.getElementById('dbt-' + table)?.classList.add('active');
+    document.getElementById('dbt-' + table.replace(/[^a-z0-9]/g,'_'))?.classList.add('active');
     document.getElementById('db-browser-toolbar').style.display = '';
     document.getElementById('db-table-card').style.display = '';
     browseTable();
@@ -871,6 +851,7 @@ async function browseTable() {
 
 function exportCurrentTable() {
     if (!currentTable) return;
+    // FIX: trimite tabela cu prefix mp_ deja selectata
     window.open(`api.php?action=export_table_csv&table=${currentTable}&csrf=${window.CSRF}`);
 }
 
@@ -1043,7 +1024,6 @@ function dlCSV(content, filename) {
     a.click();
 }
 
-// ── Close modal on overlay click ──────────────────────────────
 document.querySelectorAll('.modal-overlay').forEach(overlay => {
     overlay.addEventListener('click', e => {
         if (e.target === overlay) overlay.classList.remove('open');
@@ -1088,7 +1068,6 @@ async function loadWeightChart() {
             }
         });
 
-        // Legend custom
         const leg = document.getElementById('weight-chart-legend');
         if (leg) {
             leg.innerHTML = datasets.map(ds =>
@@ -1101,9 +1080,6 @@ async function loadWeightChart() {
     } catch(e) {}
 }
 
-// Extinde loadDashboard pentru a incarca si graficul de greutate
-
-
 // ═══════════════════════════════════════════════════════════════
 // SYSTEM HEALTH
 // ═══════════════════════════════════════════════════════════════
@@ -1115,40 +1091,32 @@ async function loadHealth() {
 
         document.getElementById('health-generated').textContent = 'Generat: ' + d.generated_at;
 
-        // Badge sidebar
         const issues = (d.stale_hives?.length || 0) + (d.low_battery?.length || 0) + d.expired_tasks;
         const badge  = document.getElementById('health-badge');
         if (badge) { badge.style.display = issues > 0 ? '' : 'none'; badge.textContent = issues; }
 
         let html = '';
 
-        // Server info
         const si = d.server_info || {};
         const diskPct = si.disk_total_gb ? Math.round((1 - si.disk_free_gb / si.disk_total_gb) * 100) : 0;
         html += `<div class="two-col" style="margin-bottom:16px">
           <div class="card">
-            <div class="card-header">
-              <div class="card-title">&#128187; Server Info</div>
-              <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Informații despre serverul web <strong>soul2soul.ro</strong> pe care rulează aplicația MATCA</div>
-            </div>
+            <div class="card-header"><div class="card-title">&#128187; Server Info</div></div>
             <table style="width:100%;font-size:13px;border-collapse:collapse">
               ${[
-                ['PHP Version',   si.php_version,    'Versiunea limbajului PHP folosit de server'],
-                ['SAPI',          si.php_sapi,        'Modul de rulare PHP (fpm-fcgi = FastCGI, optim pentru web)'],
-                ['Memory Limit',  si.memory_limit,    'Memoria RAM maxima permisa per request PHP'],
-                ['Max Exec Time', si.max_exec_time + 's', 'Timpul maxim de executie pentru un script PHP'],
-                ['Upload Max',    si.upload_max,      'Dimensiunea maxima a fisierelor uploadate (poze inspecții etc.)'],
-                ['Disk Liber',    si.disk_free_gb + ' GB / ' + si.disk_total_gb + ' GB (' + (100-diskPct) + '% liber)', 'Spatiu disponibil pe discul serverului soul2soul.ro'],
-                ['App Size',      (si.app_root_size || '?') + ' MB', 'Dimensiunea totala a fisierelor aplicatiei MATCA pe server'],
-                ['Server Time',   si.server_time,     'Ora curenta pe serverul de hosting'],
-              ].map(([k,v,tip]) => `<tr style="border-bottom:1px solid var(--border)" title="${tip}"><td style="padding:6px 8px;color:var(--text-muted)">${k} <span style="font-size:9px;opacity:0.5;cursor:help" title="${tip}">ⓘ</span></td><td style="padding:6px 8px;font-weight:600">${esc(String(v||'-'))}</td></tr>`).join('')}
+                ['PHP Version',   si.php_version],
+                ['SAPI',          si.php_sapi],
+                ['Memory Limit',  si.memory_limit],
+                ['Max Exec Time', si.max_exec_time + 's'],
+                ['Upload Max',    si.upload_max],
+                ['Disk Liber',    si.disk_free_gb + ' GB / ' + si.disk_total_gb + ' GB (' + (100-diskPct) + '% liber)'],
+                ['App Size',      (si.app_root_size || '?') + ' MB'],
+                ['Server Time',   si.server_time],
+              ].map(([k,v]) => `<tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 8px;color:var(--text-muted)">${k}</td><td style="padding:6px 8px;font-weight:600">${esc(String(v||'-'))}</td></tr>`).join('')}
             </table>
           </div>
           <div class="card">
-            <div class="card-header">
-              <div class="card-title">&#128202; Metrici DB</div>
-              <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Tabelele bazei de date MySQL <strong>danc_MatcaDB</strong> — număr înregistrări și spațiu ocupat</div>
-            </div>
+            <div class="card-header"><div class="card-title">&#128202; Metrici DB</div></div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
               ${Object.entries(d.table_stats || {}).map(([t, s]) =>
                 `<div style="background:var(--bg-elevated);border-radius:6px;padding:8px 10px">
@@ -1164,7 +1132,6 @@ async function loadHealth() {
           </div>
         </div>`;
 
-        // Issues panel
         html += `<div class="stat-grid" style="margin-bottom:16px">
           <div class="stat-card" style="--accent:${d.stale_hives?.length ? 'var(--red)' : 'var(--green)'}">
             <div class="stat-value">${d.stale_hives?.length || 0}</div>
@@ -1184,7 +1151,6 @@ async function loadHealth() {
           </div>
         </div>`;
 
-        // Stale hives
         if (d.stale_hives?.length) {
             html += `<div class="card" style="margin-bottom:12px">
               <div class="card-header"><div class="card-title" style="color:var(--red)">&#9888; Stupi Fara Citiri Recente</div></div>
@@ -1198,7 +1164,6 @@ async function loadHealth() {
               </tbody></table></div></div>`;
         }
 
-        // Low battery
         if (d.low_battery?.length) {
             html += `<div class="card" style="margin-bottom:12px">
               <div class="card-header"><div class="card-title" style="color:var(--orange)">&#128267; Baterii Critice</div></div>
@@ -1212,7 +1177,6 @@ async function loadHealth() {
               </tbody></table></div></div>`;
         }
 
-        // JSON files status
         html += `<div class="card">
           <div class="card-header"><div class="card-title">&#128196; Status Fisiere JSON</div></div>
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px">
@@ -1235,7 +1199,7 @@ async function loadHealth() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// QUEEN HISTORY — CRUD
+// QUEEN HISTORY
 // ═══════════════════════════════════════════════════════════════
 async function loadQueens() {
     const chipID = document.getElementById('queen-filter-hive')?.value || '';
@@ -1264,7 +1228,6 @@ async function loadQueens() {
         }
         renderPagination('queens-pagination', pages, queensPage, p => { queensPage = p; loadQueens(); });
 
-        // Populeaza dropdown hive filter
         const sel = document.getElementById('queen-filter-hive');
         if (sel && sel.options.length <= 1 && hivesData.length) {
             hivesData.forEach(h => {
@@ -1284,7 +1247,6 @@ function openQueenModal() {
     document.getElementById('qm-date').value   = new Date().toLocaleString('ro-RO', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}).replace(',','');
     document.getElementById('queen-modal-title').textContent = 'Eveniment Nou Matca';
 
-    // Populeaza chipid select
     const sel = document.getElementById('qm-chipid');
     sel.innerHTML = '<option value="">-- Selecteaza stup --</option>';
     hivesData.forEach(h => {
@@ -1344,7 +1306,7 @@ function deleteQueen(id) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// ALERTE — istoric complet + delete
+// ALERTE — istoric complet
 // ═══════════════════════════════════════════════════════════════
 async function loadAlertsFull() {
     const stup  = document.getElementById('alert-filter-stup')?.value || '';
@@ -1368,13 +1330,11 @@ async function loadAlertsFull() {
             : '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text-muted)">Nicio alerta in istoric</td></tr>';
         }
 
-        // Badge
         const badge = document.getElementById('alerts-badge');
         if (badge) { badge.style.display = total > 0 ? '' : 'none'; badge.textContent = total; }
 
         renderPagination('alerts-pagination', pages, alertsPage, p => { alertsPage = p; loadAlertsFull(); });
 
-        // Populeaza filter stup
         const sel = document.getElementById('alert-filter-stup');
         if (sel && sel.options.length <= 1 && items.length) {
             const stups = [...new Set(items.map(a => a.stup).filter(Boolean))];
@@ -1396,7 +1356,7 @@ function deleteAlert(id) {
 }
 
 function deleteAllAlerts() {
-    confirm('Sterge TOATE Alertele', 'Stergi permanent TOATE alertele din baza de date? Aceasta actiune este ireversibila!', async () => {
+    confirm('Sterge TOATE Alertele', 'Stergi permanent TOATE alertele? Aceasta actiune este ireversibila!', async () => {
         await api('delete_all_alerts', 'POST', {}, {});
         toast('Toate alertele au fost sterse!', 'success');
         loadAlertsFull();
@@ -1486,11 +1446,13 @@ function downloadBackupSQL() {
     toast('Se genereaza SQL dump...', 'info');
 }
 
+// FIX: exportTableCSV trimite tabele cu prefix mp_
 function exportTableCSV(table) {
-    const url = `api.php?action=export_table_csv&table=${encodeURIComponent(table)}&csrf=${encodeURIComponent(window.CSRF)}`;
+    const mpTable = table.startsWith('mp_') ? table : 'mp_' + table;
+    const url = `api.php?action=export_table_csv&table=${encodeURIComponent(mpTable)}&csrf=${encodeURIComponent(window.CSRF)}`;
     const a   = document.createElement('a');
     a.href    = url; a.click();
-    toast(`Export CSV: ${table}`, 'info');
+    toast(`Export CSV: ${mpTable}`, 'info');
 }
 
 async function loadBackupInfo() {
@@ -1531,8 +1493,6 @@ async function loadBackupInfo() {
     } catch(e) { if (el) el.innerHTML = `<div class="alert-banner alert-warning">Eroare: ${esc(e.message)}</div>`; }
 }
 
-
-
 // ── Init ──────────────────────────────────────────────────────
 loadDashboard();
-loadControllers(); // preincarca pentru dropdown-uri
+loadControllers();
