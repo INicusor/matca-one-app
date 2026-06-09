@@ -1,1 +1,1 @@
-// See assets/app.js for the real application code
+DELETED
