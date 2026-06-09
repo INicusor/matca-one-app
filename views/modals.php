@@ -16,8 +16,17 @@
       <div id="m-view-graph">
           <div id="iot-graph-controls">
               <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;">
-                  <div class="segmented-control"><button class="seg-btn active" onclick="changeTab('W', this)">Greutate</button><button class="seg-btn" onclick="changeTab('B', this)">Baterie</button></div>
+                  <div class="segmented-control"><button class="seg-btn active" onclick="changeTab('W', this)">⚖️ Greutate</button><button class="seg-btn" onclick="changeTab('T', this)">🌡️ Temp.</button><button class="seg-btn" onclick="changeTab('B', this)">🔋 Baterie</button></div>
                   <div class="segmented-control"><button class="seg-btn rangeBtn active" onclick="changeRange(1, this)">24h</button><button class="seg-btn rangeBtn" onclick="changeRange(7, this)">7 Zile</button><button class="seg-btn rangeBtn" onclick="changeRange(365, this)">1 An</button></div>
+              </div>
+              <div style="display:flex; justify-content:center; margin-top:8px;">
+                  <div class="segmented-control">
+                      <button class="seg-btn active" onclick="changeChartViz('line', this)" title="Linie">📈 Linie</button>
+                      <button class="seg-btn" onclick="changeChartViz('area', this)" title="Zonă">🏔️ Zonă</button>
+                      <button class="seg-btn" onclick="changeChartViz('bar', this)" title="Bare">📊 Bare</button>
+                      <button class="seg-btn" onclick="changeChartViz('scatter', this)" title="Puncte">⚬ Puncte</button>
+                      <button class="seg-btn" onclick="changeChartViz('stepped', this)" title="Trepte">⌇ Trepte</button>
+                  </div>
               </div>
               <div class="chart-container"><canvas id="histChart"></canvas></div>
           </div>
@@ -44,16 +53,31 @@
       </div>
 
       <div id="m-view-inspec" style="display:none;">
-          <h4 style="margin: 0 0 10px 0; color: var(--wood-dark);">🖼️ Harta Ramelor (Cuib)</h4>
-          <p style="font-size:0.75rem; opacity:0.6; margin-top:0;">Apasă pe o ramă pentru a-i schimba conținutul. (Click Dreapta pentru inapoi)</p>
+          <h4 style="margin: 0 0 6px 0; color: var(--wood-dark);">🏠 Configurație Corp Stup</h4>
+          <p style="font-size:0.72rem; opacity:0.6; margin:0 0 8px 0;">Selectează tipul corpului pentru a ajusta numărul de rame.</p>
+          <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px;" id="hive-template-btns">
+              <button class="hive-tpl-btn" data-tpl="dadant10"  onclick="applyHiveTemplate('dadant10')">Dadant 10<br><span style="font-size:0.62rem;opacity:0.7">Standard RO</span></button>
+              <button class="hive-tpl-btn" data-tpl="dadant12"  onclick="applyHiveTemplate('dadant12')">Dadant 12<br><span style="font-size:0.62rem;opacity:0.7">Corp extins</span></button>
+              <button class="hive-tpl-btn" data-tpl="lang10"    onclick="applyHiveTemplate('lang10')">Langstroth 10<br><span style="font-size:0.62rem;opacity:0.7">Internat.</span></button>
+              <button class="hive-tpl-btn" data-tpl="lang8"     onclick="applyHiveTemplate('lang8')">Langstroth 8<br><span style="font-size:0.62rem;opacity:0.7">Compact</span></button>
+              <button class="hive-tpl-btn" data-tpl="roman12"   onclick="applyHiveTemplate('roman12')">Românesc 12<br><span style="font-size:0.62rem;opacity:0.7">Vertical RO</span></button>
+              <button class="hive-tpl-btn" data-tpl="multip20"  onclick="applyHiveTemplate('multip20')">Multi-plus 20<br><span style="font-size:0.62rem;opacity:0.7">Producție</span></button>
+              <button class="hive-tpl-btn" data-tpl="warre8"    onclick="applyHiveTemplate('warre8')">Warré 8<br><span style="font-size:0.62rem;opacity:0.7">Natural</span></button>
+              <button class="hive-tpl-btn" data-tpl="polonez15" onclick="applyHiveTemplate('polonez15')">Polonez 15<br><span style="font-size:0.62rem;opacity:0.7">Orizontal</span></button>
+              <button class="hive-tpl-btn" data-tpl="onp10"     onclick="applyHiveTemplate('onp10')">ONP 10<br><span style="font-size:0.62rem;opacity:0.7">Norma PL</span></button>
+              <button class="hive-tpl-btn" data-tpl="custom"    onclick="applyHiveTemplate('custom')">✏️ Custom<br><span style="font-size:0.62rem;opacity:0.7">Manual</span></button>
+          </div>
+
+          <h4 style="margin: 0 0 6px 0; color: var(--wood-dark);">🖼️ Harta Ramelor <span id="frame-count-label" style="font-size:0.75rem;font-weight:600;opacity:0.6;margin-left:6px;">10 rame</span></h4>
+          <p style="font-size:0.72rem; opacity:0.6; margin:0 0 8px 0;">Click = înainte · Click dreapta = înapoi</p>
           <div class="frame-mapper" id="frame-mapper-container"></div>
           
           <div style="display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; font-size: 0.75rem; margin-bottom: 25px; color: var(--text-main); font-weight: 700;">
-              <span style="display:flex; align-items:center; gap:5px;"><span style="width:14px; height:14px; background:#95a5a6; border-radius:4px;"></span> Goală</span>
-              <span style="display:flex; align-items:center; gap:5px;"><span style="width:14px; height:14px; background:#f1c40f; border-radius:4px;"></span> Miere</span>
-              <span style="display:flex; align-items:center; gap:5px;"><span style="width:14px; height:14px; background:#e67e22; border-radius:4px;"></span> Polen</span>
-              <span style="display:flex; align-items:center; gap:5px;"><span style="width:14px; height:14px; background:#6d4c41; border-radius:4px;"></span> Puiet</span>
-              <span style="display:flex; align-items:center; gap:5px;"><span style="width:14px; height:14px; background:#fffde7; border:2px dashed #f1c40f; box-sizing:border-box; border-radius:4px;"></span> Ceară / Foiță</span>
+              <span style="display:flex; align-items:center; gap:5px;"><span style="width:16px; height:22px; background:#b0bec5; border-radius:3px; border:2px solid #78909c; display:inline-block;"></span> Goală</span>
+              <span style="display:flex; align-items:center; gap:5px;"><span style="width:16px; height:22px; background:#f9a825; border-radius:3px; border:2px solid #e65100; display:inline-block;"></span> 🍯 Miere</span>
+              <span style="display:flex; align-items:center; gap:5px;"><span style="width:16px; height:22px; background:#ef6c00; border-radius:3px; border:2px solid #bf360c; display:inline-block;"></span> 🌼 Polen</span>
+              <span style="display:flex; align-items:center; gap:5px;"><span style="width:16px; height:22px; background:#5d4037; border-radius:3px; border:2px solid #3e2723; display:inline-block;"></span> 🐝 Puiet</span>
+              <span style="display:flex; align-items:center; gap:5px;"><span style="width:16px; height:22px; background:#fffde7; border:2px dashed #f9a825; box-sizing:border-box; border-radius:3px; display:inline-block;"></span> ✨ Ceară / Foiță</span>
           </div>
 
           <h4 style="margin: 20px 0 10px 0; color: var(--wood-dark);">⚡ Inspecție Rapidă</h4>
@@ -72,8 +96,13 @@
               <button class="quick-btn active" onclick="toggleQuick(this, 'botci')">Fără</button>
               <button class="quick-btn" onclick="toggleQuick(this, 'botci')">Roire</button>
               <button class="quick-btn" onclick="toggleQuick(this, 'botci')">Salvare</button>
+              <button class="quick-btn" onclick="toggleQuick(this, 'botci')">Schimb Liniștit</button>
           </div>
-          <button onclick="saveQuickInspection()" class="btn-resolve" style="width:100%; margin-top:10px;">💾 Salvează Raport Inspecție</button>
+          
+          <div style="display:flex;gap:8px;margin-top:10px;">
+    <button id="btn-stup-ok" onclick="saveQuickInspectionOK()" class="btn-resolve" style="flex:1;background:linear-gradient(135deg,#10ac84,#0e8c6e);">✅ Stup OK</button>
+    <button onclick="saveQuickInspection()" class="btn-resolve" style="flex:1;">💾 Salvează Raport</button>
+</div>
 
           <div class="varroa-box" style="border-color: #8e44ad; margin-top:20px;">
               <h4 style="margin: 0 0 10px 0; color: #8e44ad;">💊 Administrare Tratament / Hrană</h4>
@@ -100,7 +129,7 @@
 
               <div style="margin-bottom:10px;">
                   <label style="font-size:0.75rem; font-weight:bold; display:block; margin-bottom:5px; color: var(--text-dark);">📅 Data primei administrări:</label>
-                  <input type="date" id="m-start-date" value="<?php echo date('Y-m-d'); ?>" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd; box-sizing: border-box;">
+                  <input type="date" id="m-start-date" value="<?php echo date('Y-m-d'); ?>" lang="ro" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd; box-sizing: border-box;">
               </div>
               
               <div style="margin-bottom:15px; display:flex; align-items:center; gap:10px; background:rgba(0,0,0,0.03); padding:8px; border-radius:8px;">
@@ -135,7 +164,10 @@
       </div>
 
       <div id="m-view-logs" style="display:none;">
-          <h4 style="margin:0 0 10px 0;">📜 Istoric Jurnal Stup</h4>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+              <h4 style="margin:0;">📜 Istoric Jurnal Stup</h4>
+              <button onclick="generatePasaportStup()" class="btn-resolve" style="background:#e67e22; font-size:0.8rem; padding:7px 12px;">📄 Export Word</button>
+          </div>
           <div id="modal-jurnal-list" class="modal-mini-logs"></div>
       </div>
 
@@ -166,7 +198,6 @@
           <button onclick="saveMeta()" class="btn-resolve" style="width:100%; max-width:300px;">Salvează Setări</button>
           
           <hr style="border:0; border-top:1px solid #eee; margin:20px 0">
-          <button onclick="generatePasaportStup()" class="btn-resolve" style="width:100%; max-width:300px; background:#e67e22; margin-bottom: 10px;">📄 Descarcă Pașaport Stup (Word)</button>
           <button onclick="generateQR()" class="btn-resolve" style="background:#3498db; padding:8px 15px">📱 Generează Cod QR Stup</button>
           
           <div id="qr-container" style="margin-top:15px"></div>

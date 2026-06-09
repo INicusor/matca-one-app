@@ -1,0 +1,21 @@
+{
+  "name": "'Mierea Pofta'",
+  "short_name": "Soul2Soul",
+  "description": "Dashboard de management apicol.",
+  "start_url": "./index.php",
+  "display": "standalone",
+  "background_color": "#fdfbf7",
+  "theme_color": "#d1b490",
+  "icons": [
+    {
+      "src": "12.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "1.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

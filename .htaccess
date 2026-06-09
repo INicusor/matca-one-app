@@ -1,0 +1,15 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Forteaza HTTPS
+    RewriteCond %{HTTPS} off
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+</IfModule>
+
+# Previne listarea directoarelor (Securitate extra sa nu iti vada lumea fisierele json)
+Options -Indexes
+
+# Protejeaza fisierele sensibile (.json si fisiere de sistem)
+<FilesMatch "\.(json|ini|log|zip|bak)$">
+    Require all denied
+</FilesMatch>

@@ -1,0 +1,418 @@
+[
+    {
+        "ts": 1780658571,
+        "date": "05.06.2026 11:22:51",
+        "user": "superadmin",
+        "action": "AUTH",
+        "detail": "Login: superadmin",
+        "ip": "192.42.116.44"
+    },
+    {
+        "ts": 1780655482,
+        "date": "05.06.2026 10:31:22",
+        "user": "superadmin",
+        "action": "AUTH",
+        "detail": "Login: superadmin",
+        "ip": "109.70.100.9"
+    },
+    {
+        "ts": 1780585082,
+        "date": "04.06.2026 14:58:02",
+        "user": "superadmin",
+        "action": "AUTH",
+        "detail": "Login: superadmin",
+        "ip": "188.26.152.84"
+    },
+    {
+        "ts": 1780585076,
+        "date": "04.06.2026 14:57:56",
+        "user": "superadmin",
+        "action": "AUTH",
+        "detail": "Logout: superadmin",
+        "ip": "188.26.152.84"
+    },
+    {
+        "ts": 1780584956,
+        "date": "04.06.2026 14:55:56",
+        "user": "superadmin",
+        "action": "AUTH",
+        "detail": "Login: superadmin",
+        "ip": "188.26.152.84"
+    },
+    {
+        "ts": 1780581184,
+        "date": "04.06.2026 13:53:04",
+        "user": "superadmin",
+        "action": "USER_UPDATE",
+        "detail": "Actualizat user: Nick",
+        "ip": "188.26.152.84"
+    },
+    {
+        "ts": 1780578944,
+        "date": "04.06.2026 13:15:44",
+        "user": "superadmin",
+        "action": "AUTH",
+        "detail": "Login: superadmin",
+        "ip": "188.26.152.84"
+    },
+    {
+        "ts": 1780521730,
+        "date": "03.06.2026 21:22:10",
+        "user": "superadmin",
+        "action": "AUTH",
+        "detail": "Login: superadmin",
+        "ip": "188.26.152.84"
+    },
+    {
+        "ts": 1780518564,
+        "date": "03.06.2026 20:29:24",
+        "user": "superadmin",
+        "action": "JURNAL_DELETE",
+        "detail": "Sters nota 6a1ec7c4a3c62",
+        "ip": "185.220.101.57"
+    },
+    {
+        "ts": 1780518561,
+        "date": "03.06.2026 20:29:21",
+        "user": "superadmin",
+        "action": "JURNAL_DELETE",
+        "detail": "Sters nota 6a1ec586b2dfc",
+        "ip": "185.220.101.57"
+    },
+    {
+        "ts": 1780518559,
+        "date": "03.06.2026 20:29:19",
+        "user": "superadmin",
+        "action": "JURNAL_DELETE",
+        "detail": "Sters nota 6a1ec47ac0fd8",
+        "ip": "185.220.101.57"
+    },
+    {
+        "ts": 1780518556,
+        "date": "03.06.2026 20:29:16",
+        "user": "superadmin",
+        "action": "JURNAL_DELETE",
+        "detail": "Sters nota 6a1ec5b5108b9",
+        "ip": "185.220.101.57"
+    },
+    {
+        "ts": 1780518554,
+        "date": "03.06.2026 20:29:14",
+        "user": "superadmin",
+        "action": "JURNAL_DELETE",
+        "detail": "Sters nota 6a1ec84602452",
+        "ip": "185.220.101.57"
+    },
+    {
+        "ts": 1780518552,
+        "date": "03.06.2026 20:29:12",
+        "user": "superadmin",
+        "action": "JURNAL_DELETE",
+        "detail": "Sters nota 6a1ec83ca6c02",
+        "ip": "185.220.101.57"
+    },
+    {
+        "ts": 1780518550,
+        "date": "03.06.2026 20:29:10",
+        "user": "superadmin",
+        "action": "JURNAL_DELETE",
+        "detail": "Sters nota 6a1ec8d19fd2e",
+        "ip": "185.220.101.57"
+    },
+    {
+        "ts": 1780518546,
+        "date": "03.06.2026 20:29:06",
+        "user": "superadmin",
+        "action": "JURNAL_DELETE",
+        "detail": "Sters nota 6a1ec8a705baa",
+        "ip": "185.220.101.57"
+    },
+    {
+        "ts": 1780518543,
+        "date": "03.06.2026 20:29:03",
+        "user": "superadmin",
+        "action": "JURNAL_DELETE",
+        "detail": "Sters nota 6a1ec8e5267ba",
+        "ip": "185.220.101.57"
+    },
+    {
+        "ts": 1780518541,
+        "date": "03.06.2026 20:29:01",
+        "user": "superadmin",
+        "action": "JURNAL_DELETE",
+        "detail": "Sters nota 6a1ec92824039",
+        "ip": "185.220.101.57"
+    },
+    {
+        "ts": 1780518524,
+        "date": "03.06.2026 20:28:44",
+        "user": "superadmin",
+        "action": "JURNAL_DELETE",
+        "detail": "Sters nota 6a1ec93d8098e",
+        "ip": "185.220.101.57"
+    },
+    {
+        "ts": 1780518522,
+        "date": "03.06.2026 20:28:42",
+        "user": "superadmin",
+        "action": "JURNAL_DELETE",
+        "detail": "Sters nota 6a1ec9e998854",
+        "ip": "185.220.101.57"
+    },
+    {
+        "ts": 1780518519,
+        "date": "03.06.2026 20:28:39",
+        "user": "superadmin",
+        "action": "JURNAL_DELETE",
+        "detail": "Sters nota 6a1ecbbd3dd3c",
+        "ip": "185.220.101.57"
+    },
+    {
+        "ts": 1780518515,
+        "date": "03.06.2026 20:28:35",
+        "user": "superadmin",
+        "action": "JURNAL_DELETE",
+        "detail": "Sters nota 6a1ecd753b097",
+        "ip": "185.220.101.57"
+    },
+    {
+        "ts": 1780518511,
+        "date": "03.06.2026 20:28:31",
+        "user": "superadmin",
+        "action": "JURNAL_DELETE",
+        "detail": "Sters nota 6a1ecd8a56aa6",
+        "ip": "185.220.101.57"
+    },
+    {
+        "ts": 1780518507,
+        "date": "03.06.2026 20:28:27",
+        "user": "superadmin",
+        "action": "JURNAL_DELETE",
+        "detail": "Sters nota 6a1febc7430ab",
+        "ip": "185.220.101.57"
+    },
+    {
+        "ts": 1780518502,
+        "date": "03.06.2026 20:28:22",
+        "user": "superadmin",
+        "action": "JURNAL_DELETE",
+        "detail": "Sters nota 6a1febdb791b1",
+        "ip": "185.220.101.57"
+    },
+    {
+        "ts": 1780515957,
+        "date": "03.06.2026 19:45:57",
+        "user": "superadmin",
+        "action": "JURNAL_DELETE",
+        "detail": "Sters nota 6a208463d62a6",
+        "ip": "185.220.101.163"
+    },
+    {
+        "ts": 1780515451,
+        "date": "03.06.2026 19:37:31",
+        "user": "superadmin",
+        "action": "HARVEST_DELETE",
+        "detail": "Sters recolta 6a1c638f95dfc",
+        "ip": "171.25.193.78"
+    },
+    {
+        "ts": 1780515333,
+        "date": "03.06.2026 19:35:33",
+        "user": "superadmin",
+        "action": "AUTH",
+        "detail": "Login: superadmin",
+        "ip": "185.220.100.253"
+    },
+    {
+        "ts": 1780483703,
+        "date": "03.06.2026 10:48:23",
+        "user": "superadmin",
+        "action": "AUTH",
+        "detail": "Login: superadmin",
+        "ip": "188.26.152.84"
+    },
+    {
+        "ts": 1780478836,
+        "date": "03.06.2026 09:27:16",
+        "user": "superadmin",
+        "action": "AUTH",
+        "detail": "Login: superadmin",
+        "ip": "188.26.152.84"
+    },
+    {
+        "ts": 1780476933,
+        "date": "03.06.2026 08:55:33",
+        "user": "superadmin",
+        "action": "AUTH",
+        "detail": "Login: superadmin",
+        "ip": "89.238.225.226"
+    },
+    {
+        "ts": 1780435567,
+        "date": "02.06.2026 21:26:07",
+        "user": "superadmin",
+        "action": "AUTH",
+        "detail": "Login: superadmin",
+        "ip": "188.26.152.84"
+    },
+    {
+        "ts": 1780430186,
+        "date": "02.06.2026 19:56:26",
+        "user": "superadmin",
+        "action": "AUTH",
+        "detail": "Login: superadmin",
+        "ip": "188.26.152.84"
+    },
+    {
+        "ts": 1780415493,
+        "date": "02.06.2026 15:51:33",
+        "user": "superadmin",
+        "action": "JURNAL_DELETE",
+        "detail": "Sters nota 6a1eecbaccafd",
+        "ip": "188.26.152.84"
+    },
+    {
+        "ts": 1780415490,
+        "date": "02.06.2026 15:51:30",
+        "user": "superadmin",
+        "action": "JURNAL_DELETE",
+        "detail": "Sters nota 6a1eec6b99038",
+        "ip": "188.26.152.84"
+    },
+    {
+        "ts": 1780415452,
+        "date": "02.06.2026 15:50:52",
+        "user": "superadmin",
+        "action": "AUTH",
+        "detail": "Login: superadmin",
+        "ip": "213.233.85.151"
+    },
+    {
+        "ts": 1780415422,
+        "date": "02.06.2026 15:50:22",
+        "user": "superadmin",
+        "action": "AUTH",
+        "detail": "Login: superadmin",
+        "ip": "188.26.152.84"
+    },
+    {
+        "ts": 1780415015,
+        "date": "02.06.2026 15:43:35",
+        "user": "superadmin",
+        "action": "AUTH",
+        "detail": "Login: superadmin",
+        "ip": "185.220.100.240"
+    },
+    {
+        "ts": 1780412196,
+        "date": "02.06.2026 14:56:36",
+        "user": "superadmin",
+        "action": "AUTH",
+        "detail": "Login: superadmin",
+        "ip": "188.26.152.84"
+    },
+    {
+        "ts": 1780412157,
+        "date": "02.06.2026 14:55:57",
+        "user": "superadmin",
+        "action": "AUTH",
+        "detail": "Login: superadmin",
+        "ip": "185.246.188.73"
+    },
+    {
+        "ts": 1780412116,
+        "date": "02.06.2026 14:55:16",
+        "user": "superadmin",
+        "action": "AUTH",
+        "detail": "Login: superadmin",
+        "ip": "192.42.116.57"
+    },
+    {
+        "ts": 1780412037,
+        "date": "02.06.2026 14:53:57",
+        "user": "superadmin",
+        "action": "AUTH",
+        "detail": "Login: superadmin",
+        "ip": "188.26.152.84"
+    },
+    {
+        "ts": 1780411669,
+        "date": "02.06.2026 14:47:49",
+        "user": "superadmin",
+        "action": "AUTH",
+        "detail": "Login: superadmin",
+        "ip": "188.26.152.84"
+    },
+    {
+        "ts": 1780403647,
+        "date": "02.06.2026 12:34:07",
+        "user": "superadmin",
+        "action": "AUTH",
+        "detail": "Login: superadmin",
+        "ip": "134.238.51.37"
+    },
+    {
+        "ts": 1780401285,
+        "date": "02.06.2026 11:54:45",
+        "user": "superadmin",
+        "action": "AUTH",
+        "detail": "Login: superadmin",
+        "ip": "188.26.152.84"
+    },
+    {
+        "ts": 1780401263,
+        "date": "02.06.2026 11:54:23",
+        "user": "superadmin",
+        "action": "AUTH",
+        "detail": "Login: superadmin",
+        "ip": "185.220.101.26"
+    },
+    {
+        "ts": 1780399744,
+        "date": "02.06.2026 11:29:04",
+        "user": "superadmin",
+        "action": "AUTH",
+        "detail": "Login: superadmin",
+        "ip": "188.26.152.84"
+    },
+    {
+        "ts": 1780393635,
+        "date": "02.06.2026 09:47:15",
+        "user": "superadmin",
+        "action": "AUTH",
+        "detail": "Login: superadmin",
+        "ip": "188.26.152.84"
+    },
+    {
+        "ts": 1780392541,
+        "date": "02.06.2026 09:29:01",
+        "user": "superadmin",
+        "action": "AUTH",
+        "detail": "Login: superadmin",
+        "ip": "89.238.225.226"
+    },
+    {
+        "ts": 1780343640,
+        "date": "01.06.2026 19:54:00",
+        "user": "superadmin",
+        "action": "AUTH",
+        "detail": "Login: superadmin",
+        "ip": "188.26.152.84"
+    },
+    {
+        "ts": 1780343628,
+        "date": "01.06.2026 19:53:48",
+        "user": "superadmin",
+        "action": "AUTH",
+        "detail": "Login: superadmin",
+        "ip": "188.26.152.84"
+    },
+    {
+        "ts": 1780340424,
+        "date": "01.06.2026 19:00:24",
+        "user": "superadmin",
+        "action": "AUTH",
+        "detail": "Login reusit: superadmin",
+        "ip": "188.26.152.84"
+    }
+]

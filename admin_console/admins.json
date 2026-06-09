@@ -1,0 +1,9 @@
+{
+    "superadmin": {
+        "password": "$2y$10$Co\/rU\/3.mDbOHqTaslQoT.fhiEj7l32xPGpReo8XHQ1TBHj3F8.ui",
+        "role": "superadmin",
+        "email": "alerts@soul2soul.ro",
+        "name": "Super Administrator",
+        "created": "2026-06-01 19:00:04"
+    }
+}

@@ -31,7 +31,9 @@ $csrfToken = isset($_SESSION['csrf_token']) ? $_SESSION['csrf_token'] : '';
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Nunito:wght@400;600;700;800;900&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
@@ -67,25 +69,26 @@ $csrfToken = isset($_SESSION['csrf_token']) ? $_SESSION['csrf_token'] : '';
 
   <div id="weather-alert">⚠️ Condiții meteo nefavorabile pentru inspecție.</div>
 
-  <nav id="main-nav" role="navigation" aria-label="Navigare principală">
+  <?php
+$currentU    = $_SESSION['username'] ?? '';
+$usersForNav = json_decode(file_get_contents(__DIR__ . '/user.json'), true) ?: [];
+$isAdminUser = ($currentU === 'admin' || !empty($usersForNav[$currentU]['is_admin']));
+?>
+<nav id="main-nav" role="navigation" aria-label="Navigare principală">
     <button class="nav-btn active" onclick="showPage('view-dashboard', this)">🏠 Dashboard</button>
+    <?php if ($isAdminUser): ?>
     <button class="nav-btn" onclick="showPage('view-map', this)">🗺️ Hartă</button>
+    <?php endif; ?>
     <button class="nav-btn" onclick="showPage('view-compare', this)">📊 Comparație</button>
     <button class="nav-btn" onclick="showPage('view-table', this)" id="nav-btn-table">📋 Inspecție</button>
     <button class="nav-btn" onclick="showPage('view-jurnal', this)">📔 Jurnal</button>
     <button class="nav-btn" onclick="showPage('view-harvest', this)">🍯 Recoltă & ROI</button>
     <button class="nav-btn" onclick="showPage('view-inventory', this)">📦 Gestiune</button>
-    <?php
-    $currentU   = $_SESSION['username'] ?? '';
-    $usersForNav = json_decode(file_get_contents(__DIR__ . '/user.json'), true) ?: [];
-    $isAdminUser = ($currentU === 'admin' || !empty($usersForNav[$currentU]['is_admin']));
-    if ($isAdminUser):
-    ?>
+    <?php if ($isAdminUser): ?>
     <button class="nav-btn" onclick="showPage('view-admin', this)">⚙️ Admin</button>
     <?php endif; ?>
     <button class="nav-btn" onclick="showPage('view-help', this)">❓ Ajutor</button>
   </nav>
-
   <nav id="bottom-nav" role="navigation" aria-label="Navigare mobilă">
     <div class="bnav-inner">
       <button class="bnav-btn active" onclick="showPage('view-dashboard', this, true)" data-page="view-dashboard">
@@ -103,11 +106,13 @@ $csrfToken = isset($_SESSION['csrf_token']) ? $_SESSION['csrf_token'] : '';
         <span class="bnav-icon">📋</span>
       </button>
       
+      <?php if ($isAdminUser): ?>
       <button class="bnav-btn" onclick="showPage('view-map', this, true)" data-page="view-map">
-        <span class="bnav-icon">🗺️</span>
-        <span>Hartă</span>
-        <span class="bnav-dot"></span>
+          <span class="bnav-icon">🗺️</span>
+          <span>Hartă</span>
+          <span class="bnav-dot"></span>
       </button>
+      <?php endif; ?>
 
       <button class="bnav-btn" onclick="document.getElementById('mobile-more-menu').style.display='flex'">
         <span class="bnav-icon">☰</span>

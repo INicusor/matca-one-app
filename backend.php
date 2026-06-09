@@ -60,22 +60,22 @@ if (!file_exists($usersFile)) {
             "created_at"         => date('d.m.Y H:i')
         ]
     ];
-    file_put_contents($usersFile, json_encode($defaultAdmin, JSON_PRETTY_PRINT));
+    file_put_contents($usersFile, json_encode($defaultAdmin, JSON_PRETTY_PRINT), LOCK_EX);
 }
-if (!file_exists($jurnalFile))      file_put_contents($jurnalFile,    '[]');
-if (!file_exists($queenFile))       file_put_contents($queenFile,     '[]');
-if (!file_exists($dataFile))        file_put_contents($dataFile,      '[]');
-if (!file_exists($manualHivesFile)) file_put_contents($manualHivesFile,'[]');
-if (!file_exists($alerteFile))      file_put_contents($alerteFile,    '[]');
-if (!file_exists($tasksFile))       file_put_contents($tasksFile,     '[]');
-if (!file_exists($metadataFile))    file_put_contents($metadataFile,  '{}');
-if (!file_exists($harvestFile))     file_put_contents($harvestFile,   '[]');
-if (!file_exists($expensesFile))    file_put_contents($expensesFile,  '[]');
-if (!file_exists($inventoryFile))   file_put_contents($inventoryFile, '[]');
-if (!file_exists($markersFile))     file_put_contents($markersFile,   '[]');
-if (!file_exists($emailLogsFile))   file_put_contents($emailLogsFile, '{}');
-if (!file_exists($rateLimitFile))   file_put_contents($rateLimitFile, '{}');
-if (!file_exists($controllersFile)) file_put_contents($controllersFile, '{}');
+if (!file_exists($jurnalFile))      file_put_contents($jurnalFile,    '[]', LOCK_EX);
+if (!file_exists($queenFile))       file_put_contents($queenFile,     '[]', LOCK_EX);
+if (!file_exists($dataFile))        file_put_contents($dataFile,      '[]', LOCK_EX);
+if (!file_exists($manualHivesFile)) file_put_contents($manualHivesFile,'[]', LOCK_EX);
+if (!file_exists($alerteFile))      file_put_contents($alerteFile,    '[]', LOCK_EX);
+if (!file_exists($tasksFile))       file_put_contents($tasksFile,     '[]', LOCK_EX);
+if (!file_exists($metadataFile))    file_put_contents($metadataFile,  '{}', LOCK_EX);
+if (!file_exists($harvestFile))     file_put_contents($harvestFile,   '[]', LOCK_EX);
+if (!file_exists($expensesFile))    file_put_contents($expensesFile,  '[]', LOCK_EX);
+if (!file_exists($inventoryFile))   file_put_contents($inventoryFile, '[]', LOCK_EX);
+if (!file_exists($markersFile))     file_put_contents($markersFile,   '[]', LOCK_EX);
+if (!file_exists($emailLogsFile))   file_put_contents($emailLogsFile, '{}', LOCK_EX);
+if (!file_exists($rateLimitFile))   file_put_contents($rateLimitFile, '{}', LOCK_EX);
+if (!file_exists($controllersFile)) file_put_contents($controllersFile, '{}', LOCK_EX);
 
 $usersData = json_decode(file_get_contents($usersFile), true) ?: [];
 
@@ -86,8 +86,126 @@ $APP_EMAIL_FROM    = 'Matca <sistem@soul2soul.ro>';
 $APP_EMAIL_REPLYTO = $usersData['admin']['email'] ?? 'admin@soul2soul.ro';
 
 /* =========================================
+   CONFIGURARE BAZA DE DATE (MatcaDB)
+   Dual-write: JSON (primar) + MySQL (backup/sync)
+   Credențialele sunt în fișierul separat db_config.php
+   ========================================= */
+require_once __DIR__ . '/db_config.php';
+
+/**
+ * Returnează conexiunea PDO la baza de date MatcaDB.
+ * Singleton — se creează o singură dată per request.
+ * Returnează null dacă conexiunea eșuează (nu blochează app-ul).
+ */
+function getDB(): ?PDO {
+    static $pdo = null;
+    static $failed = false;
+    if ($failed) return null;
+    if ($pdo !== null) return $pdo;
+    try {
+        $dsn = 'mysql:host=' . DB_HOST . ';dbname=' . DB_NAME . ';charset=' . DB_CHARSET;
+        $pdo = new PDO($dsn, DB_USER, DB_PASS, [
+            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES   => false,
+            PDO::ATTR_TIMEOUT            => 3,
+        ]);
+    } catch (PDOException $e) {
+        $failed = true;
+        error_log('[MatcaDB] Conexiune esuata: ' . $e->getMessage());
+        $pdo = null;
+    }
+    return $pdo;
+}
+
+/**
+ * Sincronizează un rând în MySQL folosind INSERT ... ON DUPLICATE KEY UPDATE.
+ * Nu blochează niciodată aplicația — erorile sunt loggate silențios.
+ *
+ * @param string $table  Numele tabelului
+ * @param array  $data   Coloane => valori
+ * @param string $idCol  Coloana cheie primară (implicit 'id')
+ */
+function dbSync(string $table, array $data, string $idCol = 'id'): void {
+    $pdo = getDB();
+    if (!$pdo || empty($data)) return;
+    try {
+        $cols    = array_keys($data);
+        $placeholders = implode(', ', array_map(fn($c) => ":$c", $cols));
+        $colList = implode(', ', array_map(fn($c) => "`$c`", $cols));
+        $updates = implode(', ', array_map(fn($c) => "`$c` = VALUES(`$c`)", $cols));
+        $sql = "INSERT INTO `$table` ($colList) VALUES ($placeholders) ON DUPLICATE KEY UPDATE $updates";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($data);
+    } catch (PDOException $e) {
+        error_log("[MatcaDB] dbSync error pe $table: " . $e->getMessage());
+    }
+}
+
+/**
+ * Șterge un rând din MySQL după ID.
+ * Nu blochează niciodată aplicația.
+ *
+ * @param string $table  Numele tabelului
+ * @param mixed  $id     Valoarea cheii primare
+ * @param string $idCol  Coloana cheie primară (implicit 'id')
+ */
+function dbDelete(string $table, $id, string $idCol = 'id'): void {
+    $pdo = getDB();
+    if (!$pdo) return;
+    try {
+        $stmt = $pdo->prepare("DELETE FROM `$table` WHERE `$idCol` = :id");
+        $stmt->execute([':id' => $id]);
+    } catch (PDOException $e) {
+        error_log("[MatcaDB] dbDelete error pe $table: " . $e->getMessage());
+    }
+}
+
+/* =========================================
    FUNCȚII HELPER
    ========================================= */
+
+/**
+ * Construiește lista de nume/chipID-uri de stupi permise pentru un user.
+ * Folosită atât la GET (filtrare date) cât și la POST (validare acces).
+ */
+function getAllowedHiveNames($u, $usersData, $metadataFile, $controllersFile, $manualHivesFile): array {
+    $meta      = json_decode(file_get_contents($metadataFile), true) ?: [];
+    $userHives = $usersData[$u]['hives'] ?? [];
+
+    if (!empty($usersData[$u]['controllers'])) {
+        $ctrlData = json_decode(file_get_contents($controllersFile), true) ?: [];
+        foreach ($usersData[$u]['controllers'] as $ctrlId) {
+            if (isset($ctrlData[$ctrlId]['chipIDs']) && is_array($ctrlData[$ctrlId]['chipIDs'])) {
+                $userHives = array_unique(array_merge($userHives, $ctrlData[$ctrlId]['chipIDs']));
+            }
+        }
+    }
+
+    $allowed = [];
+    foreach ($userHives as $cid) {
+        $cid = (string)$cid;
+        $allowed[] = strtolower($cid);
+        if (!empty($meta[$cid]['nickname'])) $allowed[] = strtolower($meta[$cid]['nickname']);
+        $allowed[] = strtolower('stup ' . $cid);
+        if (is_numeric($cid)) $allowed[] = strtolower('stup' . $cid);
+    }
+
+    if (!empty($usersData[$u]['can_manage_manual'])) {
+        $manualHives = json_decode(file_get_contents($manualHivesFile), true) ?: [];
+        foreach ($manualHives as $mh) {
+            $cid     = (string)($mh['chipID'] ?? '');
+            $creator = $mh['creator'] ?? '';
+            if (!$cid || ($creator !== $u && $creator !== '')) continue;
+            $allowed[] = strtolower($cid);
+            if (!empty($meta[$cid]['nickname'])) $allowed[] = strtolower($meta[$cid]['nickname']);
+            $allowed[] = strtolower('stup ' . $cid);
+            if (!empty($mh['nickname'])) $allowed[] = strtolower($mh['nickname']);
+        }
+    }
+
+    return array_unique(array_filter($allowed));
+}
 
 /**
  * Generează și stochează un token CSRF în sesiune.
@@ -130,12 +248,12 @@ function checkRateLimit(string $key, int $maxAttempts = 5, int $windowSeconds = 
 
     $count = count($data[$rKey] ?? []);
     if ($count >= $maxAttempts) {
-        file_put_contents($rateLimitFile, json_encode($data));
+        file_put_contents($rateLimitFile, json_encode($data), LOCK_EX);
         return false; // Depășit limita
     }
 
     $data[$rKey][] = $now;
-    file_put_contents($rateLimitFile, json_encode($data));
+    file_put_contents($rateLimitFile, json_encode($data), LOCK_EX);
     return true;
 }
 
@@ -201,58 +319,6 @@ if (isset($_GET['fetch']) && isset($_SESSION['authenticated'])) {
     $isAdm = ($u === 'admin' || !empty($usersData[$u]['is_admin']));
 
     /* ── Helper: construiește setul de nume de stupi permise pentru userul curent ── */
-    function getAllowedHiveNames($u, $usersData, $metadataFile, $controllersFile, $manualHivesFile) {
-        $meta      = json_decode(file_get_contents($metadataFile), true) ?: [];
-        $userHives = $usersData[$u]['hives'] ?? [];
-
-        // Adaugă chipID-urile din controllerele alocate
-        if (!empty($usersData[$u]['controllers'])) {
-            $ctrlData = json_decode(file_get_contents($controllersFile), true) ?: [];
-            foreach ($usersData[$u]['controllers'] as $ctrlId) {
-                if (isset($ctrlData[$ctrlId]['chipIDs']) && is_array($ctrlData[$ctrlId]['chipIDs'])) {
-                    $userHives = array_unique(array_merge($userHives, $ctrlData[$ctrlId]['chipIDs']));
-                }
-            }
-        }
-
-        $allowed = [];
-        foreach ($userHives as $cid) {
-            $cid = (string)$cid;
-            // Varianta 1: chipID-ul brut (ex: "731671")
-            $allowed[] = strtolower($cid);
-            // Varianta 2: nickname din metadata (ex: "Stup 1")
-            if (!empty($meta[$cid]['nickname'])) {
-                $allowed[] = strtolower($meta[$cid]['nickname']);
-            }
-            // Varianta 3: numele default "Stup {chipID}" — cum salvează app-ul notițele
-            $allowed[] = strtolower('stup ' . $cid);
-            // Varianta 4: doar numărul ca string (dacă e numeric)
-            if (is_numeric($cid)) {
-                $allowed[] = strtolower('stup' . $cid); // fără spațiu
-            }
-        }
-
-        // Stupi manuali dacă userul are acces
-        if (!empty($usersData[$u]['can_manage_manual'])) {
-            $manualHives = json_decode(file_get_contents($manualHivesFile), true) ?: [];
-            foreach ($manualHives as $mh) {
-                $cid = (string)($mh['chipID'] ?? '');
-                if (!$cid) continue;
-                $allowed[] = strtolower($cid);
-                if (!empty($meta[$cid]['nickname'])) {
-                    $allowed[] = strtolower($meta[$cid]['nickname']);
-                }
-                $allowed[] = strtolower('stup ' . $cid);
-                // Stupi manuali au de obicei chipID de forma "M123" sau au nickname direct
-                if (!empty($mh['nickname'])) {
-                    $allowed[] = strtolower($mh['nickname']);
-                }
-            }
-        }
-
-        return array_unique(array_filter($allowed));
-    }
-
     /* ── Endpoint-uri filtrate după câmpul 'stup' ── */
     $filteredByStup = ['jurnal' => $jurnalFile, 'harvest' => $harvestFile,
                        'expenses' => $expensesFile, 'tasks' => $tasksFile,
@@ -268,49 +334,94 @@ if (isset($_GET['fetch']) && isset($_SESSION['authenticated'])) {
             $allowedNames = getAllowedHiveNames($u, $usersData, $metadataFile, $controllersFile, $manualHivesFile);
             // Tasks fără câmp 'stup' (sarcini globale) sunt vizibile pentru toți
             $filtered = array_values(array_filter($data, function($row) use ($allowedNames, $key, $u) {
-                if ($key === 'tasks') {
-                    $type = $row['type'] ?? '';
-                    $stup = strtolower(trim($row['stup'] ?? ''));
+                $rowUser = $row['user'] ?? '';
+                $stup    = strtolower(trim($row['stup'] ?? ''));
 
-                    // Dacă are câmp stup explicit — filtrare directă după acces
+                if ($key === 'tasks') {
+                    // Task creat de user → vizibil
+                    if ($rowUser === $u) return true;
+                    // Task cu stup explicit → verifica acces
                     if ($stup !== '') {
                         return in_array($stup, $allowedNames);
                     }
-
-                    // Task fără stup explicit — încearcă să extragă stupul din text
-                    // Format tratament: "Apivar (Doza 1/2) - Stup 1"
+                    // Task tratament — extrage stupul din text
                     $match = [];
                     if (preg_match('/-\s*(.+)$/', $row['text'] ?? '', $match)) {
                         $stupDinText = strtolower(trim($match[1]));
-                        if (in_array($stupDinText, $allowedNames)) {
-                            return true;
-                        }
+                        if (in_array($stupDinText, $allowedNames)) return true;
                     }
-
-                    // Nu s-a putut determina stupul — task manual, vizibil doar creatorului
-                    return ($row['user'] ?? '') === $u;
+                    return false;
                 }
-                $stup = strtolower(trim($row['stup'] ?? ''));
-                if ($stup === '') return false;
-                return in_array($stup, $allowedNames);
+
+                // jurnal, harvest, expenses, queen:
+                // Vizibil dacă: creat de user SAU pe un stup la care are acces
+                if ($rowUser === $u) return true;
+                if ($stup !== '' && in_array($stup, $allowedNames)) return true;
+                // queen: verifică chipID (queen nu are câmp stup, are chipID)
+                if ($key === 'queen') {
+                    $chipID = $row['chipID'] ?? '';
+                    if (!empty($chipID)) {
+                        $meta = json_decode(file_get_contents($GLOBALS['metadataFile']), true) ?? [];
+                        $nick = strtolower($meta[$chipID]['nickname'] ?? '');
+                        if (in_array($nick, $allowedNames) || in_array(strtolower($chipID), $allowedNames)) return true;
+                    }
+                }
+                return false;
             }));
             echo json_encode($filtered);
         }
         exit;
     }
 
-    /* ── Endpoint-uri fără filtrare per stup ── */
-    $allowed = [
-        'alerte'    => $alerteFile,
-        'inventory' => $inventoryFile,
-        'markers'   => $markersFile,
-    ];
-    if (isset($allowed[$key]) && file_exists($allowed[$key])) {
-        $content = trim(file_get_contents($allowed[$key]));
-        echo empty($content) ? '[]' : $content;
-    } else {
-        echo '[]';
+    /* ── Endpoint: alerte rezolvate — filtrate per user ── */
+    if ($key === 'alerte') {
+        $data = json_decode(file_get_contents($alerteFile), true) ?: [];
+        if ($isAdm) {
+            echo json_encode(array_values($data));
+        } else {
+            $allowedNames = getAllowedHiveNames($u, $usersData, $metadataFile, $controllersFile, $manualHivesFile);
+            $filtered = array_values(array_filter($data, function($row) use ($allowedNames) {
+                $stup = strtolower(trim($row['stup'] ?? ''));
+                return empty($stup) || in_array($stup, $allowedNames);
+            }));
+            echo json_encode($filtered);
+        }
+        exit;
     }
+
+    /* ── Endpoint: inventory — fiecare user vede doar articolele lui ── */
+    if ($key === 'inventory') {
+        $data = json_decode(file_get_contents($inventoryFile), true) ?: [];
+        if ($isAdm) {
+            echo json_encode(array_values($data));
+        } else {
+            $filtered = array_values(array_filter($data, function($row) use ($u) {
+                $rowUser = $row['user'] ?? '';
+                // Articole fără câmp user (date vechi) = vizibile doar pentru admin
+                return !empty($rowUser) && $rowUser === $u;
+            }));
+            echo json_encode($filtered);
+        }
+        exit;
+    }
+
+    /* ── Endpoint: markers hartă — filtrate per user ── */
+    if ($key === 'markers') {
+        $data = json_decode(file_get_contents($markersFile), true) ?: [];
+        if ($isAdm) {
+            echo json_encode(array_values($data));
+        } else {
+            $filtered = array_values(array_filter($data, function($row) use ($u) {
+                $rowUser = $row['user'] ?? '';
+                // Markere fără user (date vechi) rămân vizibile pentru toți
+                return empty($rowUser) || $rowUser === $u;
+            }));
+            echo json_encode($filtered);
+        }
+        exit;
+    }
+
+    echo '[]';
     exit;
 }
 
@@ -359,7 +470,7 @@ if (isset($_POST['login'])) {
                 // Migrare automată parole vechi plaintext → hash
                 $isVerified = true;
                 $usersData[$u]['password'] = password_hash($p, PASSWORD_DEFAULT);
-                file_put_contents($usersFile, json_encode($usersData, JSON_PRETTY_PRINT));
+                file_put_contents($usersFile, json_encode($usersData, JSON_PRETTY_PRINT), LOCK_EX);
             }
 
             if ($isVerified) {
@@ -417,7 +528,7 @@ if (isset($_POST['register_account'])) {
             'created_at'        => date('d.m.Y H:i'),
             'approved'          => false,
         ];
-        file_put_contents($usersFile, json_encode($usersData, JSON_PRETTY_PRINT));
+        file_put_contents($usersFile, json_encode($usersData, JSON_PRETTY_PRINT), LOCK_EX);
 
         $subject = "Bun venit la Matca!";
         $msgMail  = "Salut, " . htmlspecialchars($u) . "!<br>Contul tău a fost creat cu succes. Adminul îți va aloca stupii în cel mai scurt timp.";
@@ -456,7 +567,7 @@ if (isset($_POST['forgot_password'])) {
             // Parolă temporară mai sigură: 12 caractere alfanumerice
             $newPass = substr(str_replace(['+', '/', '='], ['', '', ''], base64_encode(random_bytes(12))), 0, 12);
             $usersData[$user]['password'] = password_hash($newPass, PASSWORD_DEFAULT);
-            file_put_contents($usersFile, json_encode($usersData, JSON_PRETTY_PRINT));
+            file_put_contents($usersFile, json_encode($usersData, JSON_PRETTY_PRINT), LOCK_EX);
 
             $subject = "Resetare Parolă - Matca";
             $msgMail  = "Noua ta parolă temporară este: <b>" . htmlspecialchars($newPass) . "</b><br>Te rugăm să o schimbi după logare din setările contului.";
@@ -481,11 +592,14 @@ if (isset($_GET['get_permissions']) && isset($_SESSION['authenticated'])) {
     $isAdm = ($u === 'admin' || !empty($usersData[$u]['is_admin']));
     $canM  = isset($usersData[$u]['can_manage_manual']) ? $usersData[$u]['can_manage_manual'] : false;
     // Verifică dacă contul e aprobat (admin e mereu aprobat)
-    $isApproved = $isAdm || !isset($usersData[$u]['approved']) || $usersData[$u]['approved'] !== false;
+    $isApproved = $isAdm || ($usersData[$u]['approved'] ?? true) !== false;
     echo json_encode([
         'isAdmin'         => $isAdm,
         'canManageManual' => ($isAdm || $canM),
         'approved'        => $isApproved,
+        'username'        => $u,
+        'apiary_lat'      => isset($usersData[$u]['apiary_lat']) ? (float)$usersData[$u]['apiary_lat'] : null,
+        'apiary_lon'      => isset($usersData[$u]['apiary_lon']) ? (float)$usersData[$u]['apiary_lon'] : null,
     ]);
     exit;
 }
@@ -493,20 +607,29 @@ if (isset($_GET['get_permissions']) && isset($_SESSION['authenticated'])) {
 /* =========================================
    FETCH USERI (numai admin, GET)
    ========================================= */
-if (isset($_GET['fetch_users']) && ($isAdm ?? (($_SESSION['username'] ?? '') === 'admin' || !empty($usersData[$_SESSION['username'] ?? '']['is_admin'])))) {
+if (isset($_GET['fetch_users']) && isset($_SESSION['authenticated'])) {
     header('Content-Type: application/json');
+    $u     = $_SESSION['username'] ?? '';
+    $isAdm = ($u === 'admin' || !empty($usersData[$u]['is_admin']));
     $cleanUsers = [];
     foreach ($usersData as $uname => $udata) {
-        $cleanUsers[$uname] = [
-            'hives'             => (isset($udata['hives']) && is_array($udata['hives'])) ? $udata['hives'] : [],
-            'can_manage_manual' => $udata['can_manage_manual'] ?? false,
-            'email'             => $udata['email'] ?? '',
-            'is_admin'          => $udata['is_admin'] ?? false,
-            'controllers'       => (isset($udata['controllers']) && is_array($udata['controllers'])) ? $udata['controllers'] : [],
-            'approved'          => $udata['approved'] ?? null,
-        ];
-    }
-    echo json_encode($cleanUsers); exit;
+        if ($isAdm) {
+            $cleanUsers[$uname] = [
+                'hives'             => (isset($udata['hives']) && is_array($udata['hives'])) ? $udata['hives'] : [],
+                'can_manage_manual' => $udata['can_manage_manual'] ?? false,
+                'email'             => $udata['email'] ?? '',
+                'is_admin'          => $udata['is_admin'] ?? false,
+                'controllers'       => (isset($udata['controllers']) && is_array($udata['controllers'])) ? $udata['controllers'] : [],
+                'approved'          => $udata['approved'] ?? true,
+            ];
+        } else {
+            // Toti userii aprobati, excluzand self si admin
+            $isApproved = $udata['approved'] ?? true;
+            if ($uname !== $u && $uname !== 'admin' && $isApproved) {
+                $cleanUsers[$uname] = ['username' => $uname];
+            }
+        }
+    }    echo json_encode($cleanUsers); exit;
 }
 
 /* =========================================
@@ -541,7 +664,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
         if ($emailOnly && isset($usersData[$nu])) {
             if (!empty($ne) && filter_var($ne, FILTER_VALIDATE_EMAIL)) {
                 $usersData[$nu]['email'] = $ne;
-                file_put_contents($usersFile, json_encode($usersData, JSON_PRETTY_PRINT));
+                file_put_contents($usersFile, json_encode($usersData, JSON_PRETTY_PRINT), LOCK_EX);
                 echo "ok"; exit;
             }
             echo "error_email"; exit;
@@ -577,11 +700,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
             $usersData[$nu]['controllers']        = $ctrlArrUpd;
             if (!empty($ne)) $usersData[$nu]['email'] = $ne;
         }
-        file_put_contents($usersFile, json_encode($usersData, JSON_PRETTY_PRINT));
+        file_put_contents($usersFile, json_encode($usersData, JSON_PRETTY_PRINT), LOCK_EX);
+        // [MatcaDB] dual-write user
+        dbSync('mp_users', [
+            'username'          => $nu,
+            'email'             => $usersData[$nu]['email']             ?? '',
+            'can_manage_manual' => (int)($usersData[$nu]['can_manage_manual'] ?? 0),
+            'is_admin'          => (int)($usersData[$nu]['is_admin']          ?? 0),
+            'hives'             => implode(',', $usersData[$nu]['hives']       ?? []),
+            'controllers'       => implode(',', $usersData[$nu]['controllers'] ?? []),
+            'created_at'        => $usersData[$nu]['created_at'] ?? date('d.m.Y H:i'),
+        ], 'username');
         echo "ok"; exit;
     }
-
-    /* Admin: resetează parola unui utilizator și trimite email */
     if ($action === 'admin_reset_password' && $isAdmin) {
         $targetUser = clean($_POST['target_user'] ?? '');
         if (!isset($usersData[$targetUser])) { echo "not_found"; exit; }
@@ -589,7 +720,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
         if (empty($email)) { echo "no_email"; exit; }
         $newPass = substr(str_replace(['+','/','='],['','',''], base64_encode(random_bytes(12))), 0, 12);
         $usersData[$targetUser]['password'] = password_hash($newPass, PASSWORD_DEFAULT);
-        file_put_contents($usersFile, json_encode($usersData, JSON_PRETTY_PRINT));
+        file_put_contents($usersFile, json_encode($usersData, JSON_PRETTY_PRINT), LOCK_EX);
         $subject = "Resetare Parolă — Matca";
         $msgMail  = "Salut, <b>" . htmlspecialchars($targetUser) . "</b>!<br><br>Administratorul a resetat parola contului tău.<br>Noua ta parolă temporară este: <b style='font-size:18px;color:#d4860b'>" . htmlspecialchars($newPass) . "</b><br><br>Te rugăm să o schimbi după prima logare.";
         $headers  = "MIME-Version: 1.0\r\nContent-type:text/html;charset=UTF-8\r\nFrom: {$APP_EMAIL_FROM}";
@@ -601,7 +732,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
         $u = clean($_POST['user'] ?? '');
         if ($u !== 'admin' && isset($usersData[$u])) {
             unset($usersData[$u]);
-            file_put_contents($usersFile, json_encode($usersData, JSON_PRETTY_PRINT));
+            file_put_contents($usersFile, json_encode($usersData, JSON_PRETTY_PRINT), LOCK_EX);
+
+            // Curățare completă date per user
+            foreach ([
+                $jurnalFile  => 'user',
+                $tasksFile   => 'user',
+                $harvestFile => 'user',
+                $expensesFile => 'user',
+                $queenFile   => 'user',
+            ] as $file => $field) {
+                $data = json_decode(file_get_contents($file), true) ?: [];
+                $data = array_values(array_filter($data, fn($row) => ($row[$field] ?? '') !== $u));
+                file_put_contents($file, json_encode($data, JSON_PRETTY_PRINT), LOCK_EX);
+            }
+            $inv = json_decode(file_get_contents($inventoryFile), true) ?: [];
+            $inv = array_values(array_filter($inv, fn($row) => ($row['user'] ?? '') !== $u));
+            file_put_contents($inventoryFile, json_encode($inv, JSON_PRETTY_PRINT), LOCK_EX);
+
+            // [MatcaDB] dual-write delete user + data
+            dbDelete('mp_users', $u, 'username');
+            $db = getDB();
+            if ($db) {
+                foreach (['mp_jurnal','mp_tasks','mp_harvest','mp_expenses','mp_queen_history','mp_inventory'] as $tbl) {
+                    $db->prepare("DELETE FROM `$tbl` WHERE user = :u")->execute([':u' => $u]);
+                }
+            }
         }
         echo "ok"; exit;
     }
@@ -619,7 +775,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
             echo "error_length"; exit;
         }
         $usersData[$currentUser]['password'] = password_hash($newPass, PASSWORD_DEFAULT);
-        file_put_contents($usersFile, json_encode($usersData, JSON_PRETTY_PRINT));
+        file_put_contents($usersFile, json_encode($usersData, JSON_PRETTY_PRINT), LOCK_EX);
         echo "ok"; exit;
     }
 
@@ -632,7 +788,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
         }
         $usersData[$currentUser]['apiary_lat'] = $lat;
         $usersData[$currentUser]['apiary_lon'] = $lon;
-        file_put_contents($usersFile, json_encode($usersData, JSON_PRETTY_PRINT));
+        file_put_contents($usersFile, json_encode($usersData, JSON_PRETTY_PRINT), LOCK_EX);
+        // [MatcaDB] dual-write locație stupină
+        dbSync('mp_apiary_location', ['user' => $currentUser, 'lat' => $lat, 'lon' => $lon], 'user');
         echo "ok"; exit;
     }
 
@@ -745,9 +903,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
         $message .= "<div style='background:#fdfbf7;padding:15px;border-radius:10px;border:1px dashed #ccc;margin-top:20px;'><strong style='color:#555;'>📊 Status Stup:</strong><br><br><span style='font-size:14px;color:#777;'>{$hiveStats}</span>{$ultimeleSarcini}{$ultimulJurnal}</div></div></div></body></html>";
 
         $headers = "MIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\nFrom: {$APP_EMAIL_FROM}\r\n";
-        @mail($to, $subject, $message, $headers);
+        $mailOK17 = @mail($to, $subject, $message, $headers);
+        if (!$mailOK17) error_log('[Matca] mail() esuat catre: ' . $to . ' alertID=' . $alertID);
         $logs[$alertID] = time();
-        file_put_contents($emailLogsFile, json_encode($logs));
+        file_put_contents($emailLogsFile, json_encode($logs), LOCK_EX);
         echo "ok"; exit;
     }
 
@@ -916,7 +1075,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
             echo "error_pass"; exit;
         }
         $usersData[$currentUser]['email'] = $newEmail;
-        file_put_contents($usersFile, json_encode($usersData, JSON_PRETTY_PRINT));
+        file_put_contents($usersFile, json_encode($usersData, JSON_PRETTY_PRINT), LOCK_EX);
+        // [MatcaDB] dual-write email update
+        dbSync('mp_users', ['username' => $currentUser, 'email' => $newEmail], 'username');
         echo "ok"; exit;
     }
 
@@ -924,7 +1085,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
         $nu = clean($_POST['user'] ?? '');
         if (isset($usersData[$nu])) {
             $usersData[$nu]['approved'] = true;
-            file_put_contents($usersFile, json_encode($usersData, JSON_PRETTY_PRINT));
+            file_put_contents($usersFile, json_encode($usersData, JSON_PRETTY_PRINT), LOCK_EX);
+            // [MatcaDB] dual-write user approval
+            dbSync('mp_users', ['username' => $nu, 'approved' => 1], 'username');
             echo "ok";
         } else {
             echo "error";
@@ -935,42 +1098,120 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
     /* --- STUPI MANUALI --- */
     if ($action === 'add_manual_hive' && $hasManualAccess) {
         $hives  = json_decode(file_get_contents($manualHivesFile), true) ?: [];
-        $chipID = "M" . time();
+        $chipID = 'M' . bin2hex(random_bytes(6));
         $name   = clean($_POST['name']   ?? 'Stup Nou');
         $weight = floatval($_POST['weight'] ?? 0);
         $temp   = floatval($_POST['temp']   ?? 0);
 
-        $hives[] = ['chipID' => $chipID, 'weight' => $weight, 'temperature' => $temp, 'battery' => 4.2, 'delta24' => 0, 'ts' => time()];
-        file_put_contents($manualHivesFile, json_encode($hives, JSON_PRETTY_PRINT));
+        $hives[] = [
+            'chipID'      => $chipID,
+            'weight'      => $weight,
+            'temperature' => $temp,
+            'battery'     => 4.2,
+            'delta24'     => 0,
+            'ts'          => time(),
+            'creator'     => $currentUser,
+        ];
+        file_put_contents($manualHivesFile, json_encode($hives, JSON_PRETTY_PRINT), LOCK_EX);
 
         $meta          = json_decode(file_get_contents($metadataFile), true) ?: [];
-        $meta[$chipID] = ['qColor' => 'transparent', 'nickname' => $name, 'x' => 50, 'y' => 50, 'frames' => '[]'];
-        file_put_contents($metadataFile, json_encode($meta, JSON_PRETTY_PRINT));
+        $displayName   = $name . ' [M]';
+        $meta[$chipID] = ['qColor' => 'transparent', 'nickname' => $displayName, 'x' => 50, 'y' => 50, 'frames' => '[]'];
+        file_put_contents($metadataFile, json_encode($meta, JSON_PRETTY_PRINT), LOCK_EX);
+
+        // [MatcaDB] dual-write stup manual + metadata
+        dbSync('mp_manual_hives', ['chip_id' => $chipID, 'weight' => $weight, 'temperature' => $temp, 'battery' => 4.2, 'delta24' => 0, 'ts' => time(), 'creator' => $currentUser]);
+        dbSync('mp_metadata', ['chip_id' => $chipID, 'nickname' => $displayName, 'q_color' => 'transparent', 'x' => 50, 'y' => 50, 'frames' => '[]']);
         echo "ok"; exit;
     }
 
     if ($action === 'update_manual_data' && $hasManualAccess) {
         $chipID    = clean($_POST['chipID'] ?? '');
         $newWeight = floatval($_POST['weight'] ?? 0);
+        $newTemp   = floatval($_POST['temp'] ?? 0);
         $hives     = json_decode(file_get_contents($manualHivesFile), true) ?: [];
         foreach ($hives as &$h) {
             if ($h['chipID'] === $chipID) {
-                $h['delta24']     = $newWeight - floatval($h['weight']);
+                $h['delta24']     = round($newWeight - floatval($h['weight']), 3);
                 $h['weight']      = $newWeight;
-                $h['temperature'] = floatval($_POST['temp'] ?? 0);
+                $h['temperature'] = $newTemp;
                 $h['ts']          = time();
                 break;
             }
         }
-        file_put_contents($manualHivesFile, json_encode($hives, JSON_PRETTY_PRINT));
+        file_put_contents($manualHivesFile, json_encode($hives, JSON_PRETTY_PRINT), LOCK_EX);
+
+        // Salvează în history pentru grafic
+        $histDir  = $_SERVER['DOCUMENT_ROOT'] . '/history';
+        if (!is_dir($histDir)) mkdir($histDir);
+        $histFile = "$histDir/$chipID.json";
+        $hist     = file_exists($histFile) ? (json_decode(file_get_contents($histFile), true) ?: []) : [];
+        $hist[]   = ['ts' => time(), 'weight' => $newWeight, 'temperature' => $newTemp, 'battery' => 4.2];
+        if (count($hist) > 5000) $hist = array_slice($hist, -5000);
+        file_put_contents($histFile, json_encode($hist), LOCK_EX);
+
+        // [MatcaDB] dual-write update stup manual
+        dbSync('mp_manual_hives', ['chip_id' => $chipID, 'weight' => $newWeight, 'temperature' => $newTemp, 'delta24' => round($newWeight - floatval($_POST['old_weight'] ?? $newWeight), 3), 'ts' => time()], 'chip_id');
         echo "ok"; exit;
     }
 
     if ($action === 'delete_manual_hive' && $hasManualAccess) {
         $chipID = clean($_POST['chipID'] ?? '');
+        // Obținem nickname-ul înainte de ștergere (pentru curățare jurnal/tasks)
+        $meta    = json_decode(file_get_contents($metadataFile), true) ?: [];
+        $stupName = strtolower($meta[$chipID]['nickname'] ?? $chipID);
+
+        // Ștergem din manual_hives
         $hives  = json_decode(file_get_contents($manualHivesFile), true) ?: [];
         $hives  = array_values(array_filter($hives, fn($h) => $h['chipID'] !== $chipID));
-        file_put_contents($manualHivesFile, json_encode($hives, JSON_PRETTY_PRINT));
+        file_put_contents($manualHivesFile, json_encode($hives, JSON_PRETTY_PRINT), LOCK_EX);
+
+        // Curățare jurnal
+        $j = json_decode(file_get_contents($jurnalFile), true) ?: [];
+        $j = array_values(array_filter($j, function($n) use ($chipID, $stupName) {
+            return strtolower($n['stup'] ?? '') !== $stupName && ($n['stup'] ?? '') !== $chipID;
+        }));
+        file_put_contents($jurnalFile, json_encode($j, JSON_PRETTY_PRINT), LOCK_EX);
+
+        // Curățare tasks
+        $t = json_decode(file_get_contents($tasksFile), true) ?: [];
+        $t = array_values(array_filter($t, function($x) use ($chipID, $stupName) {
+            return strtolower($x['stup'] ?? '') !== $stupName && ($x['stup'] ?? '') !== $chipID;
+        }));
+        file_put_contents($tasksFile, json_encode($t, JSON_PRETTY_PRINT), LOCK_EX);
+
+        // Curățare queen_history
+        $q = json_decode(file_get_contents($queenFile), true) ?: [];
+        $q = array_values(array_filter($q, fn($e) => ($e['chipID'] ?? '') !== $chipID));
+        file_put_contents($queenFile, json_encode($q, JSON_PRETTY_PRINT), LOCK_EX);
+
+        // Curățare harvest
+        $h = json_decode(file_get_contents($harvestFile), true) ?: [];
+        $h = array_values(array_filter($h, function($r) use ($chipID, $stupName) {
+            return strtolower($r['stup'] ?? '') !== $stupName && ($r['stup'] ?? '') !== $chipID;
+        }));
+        file_put_contents($harvestFile, json_encode($h, JSON_PRETTY_PRINT), LOCK_EX);
+
+        // Curățare expenses
+        $ex = json_decode(file_get_contents($expensesFile), true) ?: [];
+        $ex = array_values(array_filter($ex, function($r) use ($chipID, $stupName) {
+            return strtolower($r['stup'] ?? '') !== $stupName && ($r['stup'] ?? '') !== $chipID;
+        }));
+        file_put_contents($expensesFile, json_encode($ex, JSON_PRETTY_PRINT), LOCK_EX);
+
+        // Curățare metadata
+        unset($meta[$chipID]);
+        file_put_contents($metadataFile, json_encode($meta, JSON_PRETTY_PRINT), LOCK_EX);
+
+        // [MatcaDB] dual-write delete + cleanup
+        dbDelete('mp_manual_hives', $chipID, 'chip_id');
+        dbDelete('mp_metadata', $chipID, 'chip_id');
+        dbDelete('mp_queen_history', $chipID, 'chip_id');
+        $db = getDB();
+        if ($db) {
+            $db->prepare("DELETE FROM mp_jurnal WHERE stup = :s")->execute([':s' => $stupName]);
+            $db->prepare("DELETE FROM mp_tasks  WHERE stup = :s")->execute([':s' => $stupName]);
+        }
         echo "ok"; exit;
     }
 
@@ -989,7 +1230,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
             'created' => $ctrls[$ctrlId]['created'] ?? date('d.m.Y H:i'),
             'updated' => date('d.m.Y H:i'),
         ];
-        file_put_contents($controllersFile, json_encode($ctrls, JSON_PRETTY_PRINT));
+        file_put_contents($controllersFile, json_encode($ctrls, JSON_PRETTY_PRINT), LOCK_EX);
+        // [MatcaDB] dual-write controller
+        dbSync('mp_controllers', ['ctrl_id' => $ctrlId, 'name' => $ctrlName, 'chip_ids' => implode(',', $chips), 'updated' => date('d.m.Y H:i')], 'ctrl_id');
         echo "ok"; exit;
     }
 
@@ -997,14 +1240,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
         $ctrlId = clean($_POST['ctrl_id'] ?? '');
         $ctrls  = json_decode(file_get_contents($controllersFile), true) ?: [];
         unset($ctrls[$ctrlId]);
-        file_put_contents($controllersFile, json_encode($ctrls, JSON_PRETTY_PRINT));
+        file_put_contents($controllersFile, json_encode($ctrls, JSON_PRETTY_PRINT), LOCK_EX);
         // Șterge controller-ul și din useri
         foreach ($usersData as $uname => &$udata) {
             if (isset($udata['controllers']) && is_array($udata['controllers'])) {
                 $udata['controllers'] = array_values(array_filter($udata['controllers'], fn($c) => $c !== $ctrlId));
             }
         }
-        file_put_contents($usersFile, json_encode($usersData, JSON_PRETTY_PRINT));
+        file_put_contents($usersFile, json_encode($usersData, JSON_PRETTY_PRINT), LOCK_EX);
+        // [MatcaDB] dual-write delete controller
+        dbDelete('mp_controllers', $ctrlId, 'ctrl_id');
         echo "ok"; exit;
     }
 
@@ -1021,22 +1266,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
             }
         }
         if (!$found) {
-            $m[] = ['id' => $mId, 'type' => clean($_POST['type'] ?? ''), 'icon' => clean($_POST['icon'] ?? ''), 'x' => $_POST['x'], 'y' => $_POST['y']];
+            $m[] = ['id' => $mId, 'type' => clean($_POST['type'] ?? ''), 'icon' => clean($_POST['icon'] ?? ''), 'x' => $_POST['x'], 'y' => $_POST['y'], 'user' => $currentUser];
         }
-        file_put_contents($markersFile, json_encode($m, JSON_PRETTY_PRINT));
+        file_put_contents($markersFile, json_encode($m, JSON_PRETTY_PRINT), LOCK_EX);
+    // [MatcaDB] dual-write marker
+    dbSync('mp_markers',['id'=>$mId,'type'=>clean($_POST['type']??''),'icon'=>clean($_POST['icon']??''),'x'=>$_POST['x'],'y'=>$_POST['y'],'map_type'=>'local']);
         echo "ok"; exit;
     }
 
     if ($action === 'delete_marker') {
         $mId = clean($_POST['id'] ?? '');
         $m   = json_decode(file_get_contents($markersFile), true) ?: [];
+        if (!$isAdmin) {
+            $rDMk = array_values(array_filter($m, fn($i) => $i['id'] === $mId));
+            if (!empty($rDMk) && ($rDMk[0]['user'] ?? '') !== $currentUser) {
+                http_response_code(403); echo 'error_access'; exit;
+            }
+        }
         $m   = array_values(array_filter($m, fn($i) => $i['id'] !== $mId));
-        file_put_contents($markersFile, json_encode($m, JSON_PRETTY_PRINT));
+        file_put_contents($markersFile, json_encode($m, JSON_PRETTY_PRINT), LOCK_EX);
+        // [MatcaDB] dual-write delete marker
+        dbDelete('mp_markers', $mId);
         echo "ok"; exit;
     }
 
     /* --- JURNAL --- */
     if ($action === 'save_queen') {
+        if (!$isAdmin) {
+            $sqCID  = clean($_POST['chipID'] ?? '');
+            $sqMeta = json_decode(file_get_contents($metadataFile), true) ?: [];
+            $sqNick = strtolower($sqMeta[$sqCID]['nickname'] ?? $sqCID);
+            $sqAlw  = getAllowedHiveNames($currentUser, $usersData, $metadataFile, $controllersFile, $manualHivesFile);
+            if (!empty($sqCID) && !in_array(strtolower($sqCID), $sqAlw) && !in_array($sqNick, $sqAlw)) {
+                http_response_code(403); echo 'error_access'; exit;
+            }
+        }
         $q = json_decode(file_get_contents($queenFile), true) ?: [];
         array_unshift($q, [
             'id'     => uniqid(),
@@ -1048,15 +1312,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
             'date'   => date('d.m.Y H:i'),
             'user'   => $currentUser,
         ]);
-        file_put_contents($queenFile, json_encode($q, JSON_PRETTY_PRINT));
+        file_put_contents($queenFile, json_encode($q, JSON_PRETTY_PRINT), LOCK_EX);
+    // [MatcaDB] dual-write queen_history
+    if (!empty($q[0])) { $qv=$q[0]; dbSync('mp_queen_history',['id'=>$qv['id'],'chip_id'=>$qv['chipID'],'event'=>$qv['event'],'breed'=>$qv['breed']??'','year'=>$qv['year']??'','notes'=>$qv['notes']??'','date'=>$qv['date'],'user'=>$qv['user']]); }
         echo "ok"; exit;
     }
 
     if ($action === 'delete_queen') {
         $q  = json_decode(file_get_contents($queenFile), true) ?: [];
         $id = clean($_POST['id'] ?? '');
+        if (!$isAdmin) {
+            $rDQ = array_values(array_filter($q, fn($e) => $e['id'] === $id));
+            if (!empty($rDQ) && ($rDQ[0]['user'] ?? '') !== $currentUser) {
+                http_response_code(403); echo 'error_access'; exit;
+            }
+        }
         $q  = array_filter($q, fn($e) => $e['id'] !== $id);
-        file_put_contents($queenFile, json_encode(array_values($q), JSON_PRETTY_PRINT));
+        file_put_contents($queenFile, json_encode(array_values($q), JSON_PRETTY_PRINT), LOCK_EX);
+        // [MatcaDB] dual-write delete queen event
+        dbDelete('mp_queen_history', $id);
         echo "ok"; exit;
     }
 
@@ -1100,15 +1374,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
         $j       = json_decode(file_get_contents($jurnalFile), true) ?: [];
         $imgPath = '';
         if (isset($_FILES['image']) && $_FILES['image']['error'] === 0) {
-            $allowed_ext = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif'];
-            $ext = strtolower(pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION));
-            if (in_array($ext, $allowed_ext)) {
+            $finfo16      = new finfo(FILEINFO_MIME_TYPE);
+            $mime16       = $finfo16->file($_FILES['image']['tmp_name']);
+            $allowedMimes16 = ['image/jpeg','image/png','image/gif','image/webp','image/heic','image/heif'];
+            $ext16        = strtolower(pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION));
+            $allowedExts16 = ['jpg','jpeg','png','gif','webp','heic','heif'];
+            $maxSize16    = 5 * 1024 * 1024;
+            $validImg16   = in_array($mime16, $allowedMimes16)
+                          && in_array($ext16, $allowedExts16)
+                          && $_FILES['image']['size'] <= $maxSize16
+                          && (@getimagesize($_FILES['image']['tmp_name']) !== false);
+            if ($validImg16) {
                 $uploadDir = __DIR__ . '/uploads/';
                 if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
+                $htFile16 = $uploadDir . '.htaccess';
+                if (!file_exists($htFile16)) {
+                    file_put_contents($htFile16,
+                        "php_flag engine off\nOptions -ExecCGI\nAddType text/plain .php .php5 .php7 .phtml\n",
+                        LOCK_EX);
+                }
                 if (is_writable($uploadDir)) {
-                    $filename = uniqid('img_') . '.' . $ext;
-                    if (move_uploaded_file($_FILES['image']['tmp_name'], $uploadDir . $filename)) {
-                        $imgPath = 'uploads/' . $filename;
+                    $filename16 = bin2hex(random_bytes(12)) . '.' . $ext16;
+                    if (move_uploaded_file($_FILES['image']['tmp_name'], $uploadDir . $filename16)) {
+                        $imgPath = 'uploads/' . $filename16;
                     }
                 }
             }
@@ -1122,25 +1410,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
             'date'  => date('d.m.Y H:i'),
         ]);
         autoBackup($jurnalFile);
-        file_put_contents($jurnalFile, json_encode($j, JSON_PRETTY_PRINT));
+        file_put_contents($jurnalFile, json_encode($j, JSON_PRETTY_PRINT), LOCK_EX);
+    // [MatcaDB] dual-write jurnal
+    if (!empty($j[0])) { $jEntry=$j[0]; dbSync('mp_jurnal',['id'=>$jEntry['id'],'user'=>$jEntry['user'],'stup'=>$jEntry['stup'],'text'=>$jEntry['text'],'image'=>$jEntry['image']??'','date'=>$jEntry['date']]); }
         echo "ok"; exit;
     }
 
     if ($action === 'delete_note') {
         $nId = clean($_POST['id'] ?? '');
         $j   = json_decode(file_get_contents($jurnalFile), true) ?: [];
+        if (!$isAdmin) {
+            $rDN = array_values(array_filter($j, fn($n) => $n['id'] === $nId));
+            if (!empty($rDN)) {
+                $isOwN = ($rDN[0]['user'] ?? '') === $currentUser;
+                $hasAN = $fnCanAccessHive($rDN[0]['stup'] ?? '');
+                if (!$isOwN && !$hasAN) { http_response_code(403); echo 'error_access'; exit; }
+            }
+        }
         $j   = array_values(array_filter($j, fn($n) => $n['id'] !== $nId));
-        file_put_contents($jurnalFile, json_encode($j, JSON_PRETTY_PRINT));
+        file_put_contents($jurnalFile, json_encode($j, JSON_PRETTY_PRINT), LOCK_EX);
+        // [MatcaDB] dual-write delete jurnal entry
+        dbDelete('mp_jurnal', $nId);
         echo "ok"; exit;
     }
 
     if ($action === 'delete_all_hive_notes' && $isAdmin) {
         $stup = clean($_POST['stup'] ?? '');
         if (empty($stup)) { echo "error"; exit; }
-        $j = json_decode(file_get_contents($jurnalFile), true) ?: [];
-        $j = array_values(array_filter($j, fn($n) => ($n['stup'] ?? '') !== $stup));
+        $j     = json_decode(file_get_contents($jurnalFile), true) ?: [];
+        $toDelete = array_filter($j, fn($n) => ($n['stup'] ?? '') === $stup);
+        $j     = array_values(array_filter($j, fn($n) => ($n['stup'] ?? '') !== $stup));
         autoBackup($jurnalFile);
-        file_put_contents($jurnalFile, json_encode($j, JSON_PRETTY_PRINT));
+        file_put_contents($jurnalFile, json_encode($j, JSON_PRETTY_PRINT), LOCK_EX);
+        // [MatcaDB] dual-write delete all notes for hive
+        $db = getDB();
+        if ($db) {
+            $stmt = $db->prepare("DELETE FROM mp_jurnal WHERE stup = :stup");
+            $stmt->execute([':stup' => $stup]);
+        }
         echo "ok"; exit;
     }
 
@@ -1159,32 +1466,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
         ];
         if ($taskStup !== '') $newTask['stup'] = $taskStup;
         array_unshift($t, $newTask);
-        file_put_contents($tasksFile, json_encode($t, JSON_PRETTY_PRINT));
+        file_put_contents($tasksFile, json_encode($t, JSON_PRETTY_PRINT), LOCK_EX);
+        // [MatcaDB] dual-write task cu stup
+        if (!empty($t[0])) { $tk=$t[0]; dbSync('mp_tasks',['id'=>$tk['id'],'user'=>$tk['user'],'stup'=>$tk['stup']??'','type'=>$tk['type']??'manual','text'=>$tk['text'],'date'=>$tk['date'],'done'=>0,'has_reminder'=>0]); }
         echo "ok"; exit;
     }
 
     if ($action === 'resolve_task') {
         $tId         = clean($_POST['id'] ?? '');
         $t           = json_decode(file_get_contents($tasksFile), true) ?: [];
+        if (!$isAdmin) {
+            $rRT = array_values(array_filter($t, fn($x) => $x['id'] === $tId));
+            if (!empty($rRT)) {
+                $isOwRT = ($rRT[0]['user'] ?? '') === $currentUser;
+                $hasART = $fnCanAccessHive($rRT[0]['stup'] ?? '');
+                if (!$isOwRT && !$hasART) { http_response_code(403); echo 'error_access'; exit; }
+            }
+        }
         $resolvedText = '';
         foreach ($t as &$x) {
             if ($x['id'] === $tId) { $x['done'] = true; $resolvedText = $x['text']; break; }
         }
-        file_put_contents($tasksFile, json_encode($t, JSON_PRETTY_PRINT));
+        file_put_contents($tasksFile, json_encode($t, JSON_PRETTY_PRINT), LOCK_EX);
+        // [MatcaDB] sync task resolved cu stup
+        if (!empty($t)) { foreach($t as $tk) { if($tk['id']===$tId) { dbSync('mp_tasks',['id'=>$tk['id'],'user'=>$tk['user'],'stup'=>$tk['stup']??'','type'=>$tk['type']??'manual','text'=>$tk['text'],'date'=>$tk['date'],'done'=>1,'has_reminder'=>(int)($tk['has_reminder']??0)]); break; } } }
 
         $j             = json_decode(file_get_contents($jurnalFile), true) ?: [];
         $stupExtracted = "General";
         if (preg_match('/-\s*(.*)$/', $resolvedText, $matches)) $stupExtracted = trim($matches[1]);
         array_unshift($j, ['id' => uniqid(), 'user' => $currentUser, 'stup' => $stupExtracted, 'text' => "✅ Sarcină rezolvată: " . $resolvedText, 'image' => '', 'date' => date('d.m.Y H:i')]);
-        file_put_contents($jurnalFile, json_encode($j, JSON_PRETTY_PRINT));
+        file_put_contents($jurnalFile, json_encode($j, JSON_PRETTY_PRINT), LOCK_EX);
+        // [MatcaDB] dual-write jurnal entry for resolved task
+        if (!empty($j[0])) { $jv=$j[0]; dbSync('mp_jurnal',['id'=>$jv['id'],'user'=>$jv['user'],'stup'=>$jv['stup'],'text'=>$jv['text'],'image'=>'','date'=>$jv['date']]); }
         echo "ok"; exit;
     }
 
     if ($action === 'delete_task') {
         $tId = clean($_POST['id'] ?? '');
         $t   = json_decode(file_get_contents($tasksFile), true) ?: [];
+        if (!$isAdmin) {
+            $rDT = array_values(array_filter($t, fn($x) => $x['id'] === $tId));
+            if (!empty($rDT) && ($rDT[0]['user'] ?? '') !== $currentUser) {
+                http_response_code(403); echo 'error_access'; exit;
+            }
+        }
         $t   = array_values(array_filter($t, fn($x) => $x['id'] !== $tId));
-        file_put_contents($tasksFile, json_encode($t, JSON_PRETTY_PRINT));
+        file_put_contents($tasksFile, json_encode($t, JSON_PRETTY_PRINT), LOCK_EX);
+        // [MatcaDB] dual-write delete task
+        dbDelete('mp_tasks', $tId);
         echo "ok"; exit;
     }
 
@@ -1211,12 +1540,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
                 'has_reminder' => $preAlert,
             ]);
         }
-        file_put_contents($tasksFile, json_encode($t, JSON_PRETTY_PRINT));
+        file_put_contents($tasksFile, json_encode($t, JSON_PRETTY_PRINT), LOCK_EX);
+        // [MatcaDB] dual-write treatment tasks
+        foreach (array_slice($t, 0, $doze) as $tk) {
+            dbSync('mp_tasks', ['id' => $tk['id'], 'user' => $tk['user'], 'stup' => $tk['stup'] ?? '', 'type' => $tk['type'], 'text' => $tk['text'], 'date' => $tk['date'], 'done' => 0, 'has_reminder' => (int)($tk['has_reminder'] ?? 0)]);
+        }
         echo "ok"; exit;
     }
-
-    /* --- ALERTE --- */
     if ($action === 'resolve_alert') {
+        $alertStupRA = clean($_POST['stup'] ?? '');
+        if (!$isAdmin && !empty($alertStupRA) && !$fnCanAccessHive($alertStupRA)) {
+            http_response_code(403); echo 'error_access'; exit;
+        }
         $a = json_decode(file_get_contents($alerteFile), true) ?: [];
         array_unshift($a, [
             'alert_id' => clean($_POST['alert_id'] ?? ''),
@@ -1226,7 +1561,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
             'user'     => $currentUser,
             'hive_ts'  => intval($_POST['hive_ts']  ?? 0),
         ]);
-        file_put_contents($alerteFile, json_encode($a, JSON_PRETTY_PRINT));
+        file_put_contents($alerteFile, json_encode($a, JSON_PRETTY_PRINT), LOCK_EX);
+    // [MatcaDB] dual-write alerta
+    if (!empty($a[0])) { $al=$a[0]; dbSync('mp_alerte',['alert_id'=>$al['alert_id'],'stup'=>$al['stup'],'msg'=>$al['msg'],'date'=>$al['date'],'user'=>$al['user'],'hive_ts'=>$al['hive_ts']??0,'rezolvata'=>1]); }
         echo "ok"; exit;
     }
 
@@ -1234,6 +1571,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
     if ($action === 'save_metadata') {
         $m   = json_decode(file_get_contents($metadataFile), true) ?: [];
         $cid = clean($_POST['chipID'] ?? '');
+        if (empty($cid)) { http_response_code(400); echo 'error_missing'; exit; }
+        if (!$isAdmin) {
+            $metaNick = strtolower($m[$cid]['nickname'] ?? $cid);
+            $allowedMD = getAllowedHiveNames($currentUser, $usersData, $metadataFile, $controllersFile, $manualHivesFile);
+            if (!in_array(strtolower((string)$cid), $allowedMD) && !in_array($metaNick, $allowedMD)) {
+                http_response_code(403); echo 'error_access'; exit;
+            }
+        }
         if (!isset($m[$cid])) $m[$cid] = [];
         if (isset($_POST['qColor']))     $m[$cid]['qColor']    = clean($_POST['qColor']);
         if (isset($_POST['nickname']))   $m[$cid]['nickname']  = htmlspecialchars(clean($_POST['nickname']));
@@ -1244,11 +1589,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
         if (isset($_POST['x']))          $m[$cid]['x']         = clean($_POST['x']);
         if (isset($_POST['y']))          $m[$cid]['y']         = clean($_POST['y']);
         if (isset($_POST['maintenance'])) $m[$cid]['maintenance'] = filter_var($_POST['maintenance'], FILTER_VALIDATE_BOOLEAN);
-        if (isset($_POST['supers']))      $m[$cid]['supers']      = intval($_POST['supers']);
+        if (isset($_POST['supers']))       $m[$cid]['supers']       = intval($_POST['supers']);
+        if (isset($_POST['super_frames']))    $m[$cid]['super_frames']   = intval($_POST['super_frames']);
+        if (isset($_POST['hive_template']))  $m[$cid]['hive_template']  = clean($_POST['hive_template']);
+        if (isset($_POST['body_kg']))        $m[$cid]['body_kg']        = round((float)$_POST['body_kg'], 2);
+        if (isset($_POST['super_kg']))       $m[$cid]['super_kg']       = round((float)$_POST['super_kg'], 2);
+        if (isset($_POST['super_frame_kg'])) $m[$cid]['super_frame_kg'] = round((float)$_POST['super_frame_kg'], 3);
         if (isset($_POST['lat']))          $m[$cid]['lat'] = (float)$_POST['lat'];
         if (isset($_POST['lng']))          $m[$cid]['lng'] = (float)$_POST['lng'];
         if (isset($_POST['weightRef']))    $m[$cid]['weightRef'] = round((float)$_POST['weightRef'], 3);
-        file_put_contents($metadataFile, json_encode($m, JSON_PRETTY_PRINT));
+        file_put_contents($metadataFile, json_encode($m, JSON_PRETTY_PRINT), LOCK_EX);
+        // [MatcaDB] dual-write metadata
+        $row = $m[$cid];
+        dbSync('mp_metadata', [
+            'chip_id'        => $cid,
+            'nickname'       => $row['nickname']       ?? '',
+            'q_color'        => $row['qColor']         ?? '',
+            'q_breed'        => $row['qBreed']         ?? '',
+            'q_score'        => $row['qScore']         ?? '',
+            'parent'         => $row['parent']         ?? '',
+            'frames'         => $row['frames']         ?? '[]',
+            'hive_template'  => $row['hive_template']  ?? '',
+            'supers'         => $row['supers']         ?? 0,
+            'super_frames'   => $row['super_frames']   ?? 0,
+            'body_kg'        => $row['body_kg']        ?? 0,
+            'super_kg'       => $row['super_kg']       ?? 0,
+            'super_frame_kg' => $row['super_frame_kg'] ?? 0,
+            'maintenance'    => (int)($row['maintenance'] ?? 0),
+            'weight_ref'     => $row['weightRef']      ?? 0,
+            'lat'            => $row['lat']            ?? 0,
+            'lng'            => $row['lng']            ?? 0,
+            'x'              => $row['x']              ?? 50,
+            'y'              => $row['y']              ?? 50,
+        ], 'chip_id');
         echo "ok"; exit;
     }
 
@@ -1259,14 +1632,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
         $h = json_decode(file_get_contents($harvestFile), true) ?: [];
         array_unshift($h, ['id' => uniqid(), 'stup' => $stupH, 'kg' => floatval($_POST['kg'] ?? 0), 'tip' => clean($_POST['tip'] ?? ''), 'pret' => floatval($_POST['pret'] ?? 0), 'date' => date('d.m.Y')]);
         autoBackup($harvestFile);
-        file_put_contents($harvestFile, json_encode($h, JSON_PRETTY_PRINT));
+        file_put_contents($harvestFile, json_encode($h, JSON_PRETTY_PRINT), LOCK_EX);
+    // [MatcaDB] dual-write harvest
+    if (!empty($h[0])) { $hv=$h[0]; dbSync('mp_harvest',['id'=>$hv['id'],'stup'=>$hv['stup'],'kg'=>$hv['kg'],'tip'=>$hv['tip'],'pret'=>$hv['pret'],'date'=>$hv['date']]); }
         echo "ok"; exit;
     }
     if ($action === 'delete_harvest') {
         $hId = clean($_POST['id'] ?? '');
         $h   = json_decode(file_get_contents($harvestFile), true) ?: [];
+        if (!$isAdmin) {
+            $rDH = array_values(array_filter($h, fn($i) => $i['id'] === $hId));
+            if (!empty($rDH) && !$fnCanAccessHive($rDH[0]['stup'] ?? '')) {
+                http_response_code(403); echo 'error_access'; exit;
+            }
+        }
         $h   = array_values(array_filter($h, fn($i) => $i['id'] !== $hId));
-        file_put_contents($harvestFile, json_encode($h, JSON_PRETTY_PRINT));
+        file_put_contents($harvestFile, json_encode($h, JSON_PRETTY_PRINT), LOCK_EX);
+        dbDelete('mp_harvest', $hId);
         echo "ok"; exit;
     }
 
@@ -1276,22 +1658,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
         if (!$fnCanAccessHive($stupE)) { echo "error_access"; exit; }
         $e = json_decode(file_get_contents($expensesFile), true) ?: [];
         $e[] = ['id' => uniqid(), 'stup' => $stupE, 'suma' => floatval($_POST['suma'] ?? 0), 'desc' => htmlspecialchars(clean($_POST['desc'] ?? '')), 'date' => date('d.m.Y')];
-        file_put_contents($expensesFile, json_encode($e, JSON_PRETTY_PRINT));
+        file_put_contents($expensesFile, json_encode($e, JSON_PRETTY_PRINT), LOCK_EX);
+    // [MatcaDB] dual-write expense
+    if (!empty($e)) { $ev=end($e); dbSync('mp_expenses',['id'=>$ev['id'],'stup'=>$ev['stup'],'suma'=>$ev['suma'],'description'=>$ev['desc']??'','date'=>$ev['date']]); }
         echo "ok"; exit;
     }
     if ($action === 'delete_expense') {
         $eId = clean($_POST['id'] ?? '');
         $e   = json_decode(file_get_contents($expensesFile), true) ?: [];
+        if (!$isAdmin) {
+            $rDE = array_values(array_filter($e, fn($i) => $i['id'] === $eId));
+            if (!empty($rDE) && !$fnCanAccessHive($rDE[0]['stup'] ?? '')) {
+                http_response_code(403); echo 'error_access'; exit;
+            }
+        }
         $e   = array_values(array_filter($e, fn($i) => $i['id'] !== $eId));
-        file_put_contents($expensesFile, json_encode($e, JSON_PRETTY_PRINT));
+        file_put_contents($expensesFile, json_encode($e, JSON_PRETTY_PRINT), LOCK_EX);
+        // [MatcaDB] dual-write delete expense
+        dbDelete('mp_expenses', $eId);
         echo "ok"; exit;
     }
 
     /* --- INVENTAR --- */
     if ($action === 'save_inventory') {
-        $i   = json_decode(file_get_contents($inventoryFile), true) ?: [];
-        $i[] = ['id' => uniqid(), 'item' => htmlspecialchars(clean($_POST['item'] ?? '')), 'qty' => clean($_POST['qty'] ?? 0), 'type' => clean($_POST['type'] ?? ''), 'category' => clean($_POST['category'] ?? '')];
-        file_put_contents($inventoryFile, json_encode($i, JSON_PRETTY_PRINT));
+        $i      = json_decode(file_get_contents($inventoryFile), true) ?: [];
+        // share_user permite salvarea unui item pentru un user specific (share multi-user)
+        $targetUser = !empty($_POST['share_user']) ? clean($_POST['share_user']) : $currentUser;
+        // Validare: targetUser trebuie să existe
+        if ($targetUser !== $currentUser && !isset($usersData[$targetUser])) {
+            echo "error_user"; exit;
+        }
+        $newItem = [
+            'id'        => uniqid(),
+            'item'      => htmlspecialchars(clean($_POST['item']     ?? '')),
+            'qty'       => clean($_POST['qty']      ?? 0),
+            'type'      => clean($_POST['type']     ?? ''),
+            'category'  => clean($_POST['category'] ?? ''),
+            'user'      => $targetUser,
+        ];
+        // Dacă e shared (target != currentUser), salvăm cine a dat share
+        if ($targetUser !== $currentUser) {
+            $newItem['shared_by'] = $currentUser;
+        }
+        $i[] = $newItem;
+        file_put_contents($inventoryFile, json_encode($i, JSON_PRETTY_PRINT), LOCK_EX);
+        dbSync('mp_inventory', ['id'=>$newItem['id'],'user'=>$targetUser,'item'=>$newItem['item'],'qty'=>$newItem['qty'],'type'=>$newItem['type'],'category'=>$newItem['category']]);
         echo "ok"; exit;
     }
     if ($action === 'edit_inventory') {
@@ -1306,14 +1717,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
                 break;
             }
         }
-        file_put_contents($inventoryFile, json_encode($i, JSON_PRETTY_PRINT));
+        file_put_contents($inventoryFile, json_encode($i, JSON_PRETTY_PRINT), LOCK_EX);
+    // [MatcaDB] sync inventory edit
+    foreach($i as $inv) { if($inv['id']===$iId) { dbSync('mp_inventory',['id'=>$inv['id'],'item'=>$inv['item'],'qty'=>$inv['qty'],'type'=>$inv['type']??'','category'=>$inv['category']??'']); break; } }
         echo "ok"; exit;
     }
     if ($action === 'delete_inventory') {
         $iId = clean($_POST['id'] ?? '');
         $i   = json_decode(file_get_contents($inventoryFile), true) ?: [];
+        if (!$isAdmin) {
+            $rDI = array_values(array_filter($i, fn($x) => $x['id'] === $iId));
+            if (!empty($rDI) && ($rDI[0]['user'] ?? '') !== $currentUser) {
+                http_response_code(403); echo 'error_access'; exit;
+            }
+        }
         $i   = array_values(array_filter($i, fn($x) => $x['id'] !== $iId));
-        file_put_contents($inventoryFile, json_encode($i, JSON_PRETTY_PRINT));
+        file_put_contents($inventoryFile, json_encode($i, JSON_PRETTY_PRINT), LOCK_EX);
+        // [MatcaDB] dual-write delete inventory
+        dbDelete('mp_inventory', $iId);
         echo "ok"; exit;
     }
 
@@ -1321,11 +1742,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
         $source   = clean($_POST['source']   ?? '');
         $target   = clean($_POST['target']   ?? '');
         $resource = clean($_POST['resource'] ?? '');
-        $j        = json_decode(file_get_contents($jurnalFile), true) ?: [];
-        array_unshift($j, ['id' => uniqid(), 'user' => $currentUser, 'stup' => $source, 'text' => "➖ S-a extras: $resource (Către: $target)",  'image' => '', 'date' => date('d.m.Y H:i')]);
-        array_unshift($j, ['id' => uniqid(), 'user' => $currentUser, 'stup' => $target, 'text' => "➕ S-a adăugat: $resource (Sursă: $source)", 'image' => '', 'date' => date('d.m.Y H:i')]);
-        file_put_contents($jurnalFile, json_encode($j, JSON_PRETTY_PRINT));
+        if (empty($source) || empty($target) || empty($resource)) { echo "error_missing"; exit; }
+        if (!$isAdmin && (!$fnCanAccessHive($source) || !$fnCanAccessHive($target))) {
+            http_response_code(403); echo 'error_access'; exit;
+        }
+        $j  = json_decode(file_get_contents($jurnalFile), true) ?: [];
+        $e1 = ['id' => uniqid(), 'user' => $currentUser, 'stup' => $source, 'text' => "➖ Transfer trimis: $resource → către $target",  'image' => '', 'date' => date('d.m.Y H:i')];
+        $e2 = ['id' => uniqid(), 'user' => $currentUser, 'stup' => $target, 'text' => "➕ Transfer primit: $resource ← de la $source", 'image' => '', 'date' => date('d.m.Y H:i')];
+        array_unshift($j, $e1, $e2);
+        file_put_contents($jurnalFile, json_encode($j, JSON_PRETTY_PRINT), LOCK_EX);
+        // [MatcaDB] dual-write ambele intrări
+        dbSync('mp_jurnal', ['id'=>$e1['id'],'user'=>$e1['user'],'stup'=>$e1['stup'],'text'=>$e1['text'],'image'=>'','date'=>$e1['date']]);
+        dbSync('mp_jurnal', ['id'=>$e2['id'],'user'=>$e2['user'],'stup'=>$e2['stup'],'text'=>$e2['text'],'image'=>'','date'=>$e2['date']]);
         echo "ok"; exit;
+    }
+
+    /* --- CONTACT / FEEDBACK --- */
+    if ($action === 'send_contact') {
+        $category  = clean($_POST['category'] ?? '');
+        $subject   = htmlspecialchars(clean($_POST['subject'] ?? ''));
+        $msgBody   = htmlspecialchars(clean($_POST['message'] ?? ''));
+        $from      = $currentUser;
+        $userEmail = $usersData[$currentUser]['email'] ?? '';
+
+        if (empty($category) || empty($subject) || strlen($msgBody) < 5) {
+            echo "error_empty"; exit;
+        }
+
+        $catLabels = [
+            'bug'      => 'Bug / Eroare',
+            'sugestie' => 'Sugestie',
+            'feedback' => 'Feedback general',
+            'cont'     => 'Problema cont',
+            'senzor'   => 'Problema senzor',
+            'altele'   => 'Altele',
+        ];
+        $catLabel = $catLabels[$category] ?? $category;
+
+        $to           = 'alerts@soul2soul.ro';
+        $emailSubject = "[MATCA] {$catLabel}: {$subject}";
+        $emailBody    = "<html><body style='font-family:Arial,sans-serif;font-size:14px;'>"
+            . "<h2 style='color:#d4860b;'>Mesaj nou din MATCA App</h2>"
+            . "<p><b>De la:</b> {$from}" . (!empty($userEmail) ? " ({$userEmail})" : "") . "</p>"
+            . "<p><b>Categorie:</b> {$catLabel}</p>"
+            . "<p><b>Subiect:</b> {$subject}</p>"
+            . "<p><b>Mesaj:</b></p><p style='background:#fdf8ef;padding:12px;border-radius:8px;border-left:3px solid #d4860b;'>" . nl2br($msgBody) . "</p>"
+            . "<p style='font-size:11px;color:#888;'>Trimis: " . date('d.m.Y H:i') . "</p>"
+            . "</body></html>";
+
+        $headers  = "MIME-Version: 1.0\r\nContent-type:text/html;charset=UTF-8\r\n";
+        $headers .= "From: {$APP_EMAIL_FROM}\r\n";
+        if (!empty($userEmail)) {
+            $headers .= "Reply-To: {$userEmail}\r\n";
+        }
+
+        $sent = @mail($to, $emailSubject, $emailBody, $headers);
+        echo $sent ? "ok" : "error_mail";
+        exit;
     }
 }
 
@@ -1336,10 +1809,17 @@ if (isset($_GET['get_controllers']) && isset($_SESSION['authenticated'])) {
     header('Content-Type: application/json');
     $ctrls   = json_decode(file_get_contents($controllersFile), true) ?: [];
     $rawData = json_decode(file_get_contents($dataFile), true) ?: [];
+
+    $u     = $_SESSION['username'] ?? '';
+    $isAdm = ($u === 'admin' || !empty($usersData[$u]['is_admin']));
+
+    // Controllere alocate userului curent
+    $userCtrls = $usersData[$u]['controllers'] ?? [];
+
     // Adaugă timestamp ultimei citiri per controller
     foreach ($ctrls as $ctrlId => &$ctrl) {
         $lastTs = 0;
-        foreach ($ctrl['chipIDs'] as $cid) {
+        foreach (($ctrl['chipIDs'] ?? []) as $cid) {
             foreach ($rawData as $d) {
                 if ((string)$d['chipID'] === (string)$cid) {
                     $ts = $d['lastUpdated'] ?? $d['ts'] ?? 0;
@@ -1349,6 +1829,15 @@ if (isset($_GET['get_controllers']) && isset($_SESSION['authenticated'])) {
         }
         $ctrl['lastSeen'] = $lastTs;
     }
+    unset($ctrl);
+
+    // Filtru: admin vede toate, userii normali doar controllerele alocate lor
+    if (!$isAdm) {
+        $ctrls = array_filter($ctrls, function($ctrl, $ctrlId) use ($userCtrls) {
+            return in_array((string)$ctrlId, array_map('strval', $userCtrls));
+        }, ARRAY_FILTER_USE_BOTH);
+    }
+
     echo json_encode($ctrls); exit;
 }
 
@@ -1373,12 +1862,21 @@ if (isset($_GET['get_data']) && isset($_SESSION['authenticated'])) {
         }
     }
 
-    foreach ($manualHives as $mh) { $mh['isManual'] = true; $raw[] = $mh; }
+    foreach ($manualHives as $mh) {
+        $mh['isManual'] = true;
+        // Stupi manuali: admin vede tot, userul vede doar pe ai lui (creator)
+        $creator = $mh['creator'] ?? '';
+        if ($isAdm || ($hasManualAccess && ($creator === $u || ($creator === '' && $isAdm)))) {
+            $raw[] = $mh;
+        }
+    }
 
     $filtered = [];
     foreach ($raw as $d) {
         $cid = (string)$d['chipID'];
-        if ($isAdm || in_array($cid, $userHives) || (strpos($cid, 'M') === 0 && $hasManualAccess)) {
+        $isManualHive = !empty($d['isManual']);
+        // Manual hive: deja filtrat mai sus, deci e al userului curent
+        if ($isAdm || in_array($cid, $userHives) || $isManualHive) {
             $d['meta']         = $meta[$cid] ?? ['qColor' => 'transparent'];
             $d['delta24']      = $d['delta24'] ?? 0;
             $d['deltaDay']     = 0;
@@ -1400,12 +1898,13 @@ if (isset($_GET['get_data']) && isset($_SESSION['authenticated'])) {
                             $ref = (float)$meta[$cid]['weightRef'];
                             $d['delta24'] = round($validRows[$count - 1]['weight'] - $ref, 3);
                             unset($meta[$cid]['weightRef']);
-                            file_put_contents($metadataFile, json_encode($meta, JSON_PRETTY_PRINT));
+                            file_put_contents($metadataFile, json_encode($meta, JSON_PRETTY_PRINT), LOCK_EX);
                         } else {
-                            // delta24 = diferența față de citirea anterioară (afișaj pe card + alertă roire)
-                            $d['delta24'] = ($count >= 2)
+                            // deltaReading = schimbarea fata de citirea anterioara (interval senzor ~30min)
+                            $d['deltaReading'] = ($count >= 2)
                                 ? round($validRows[$count - 1]['weight'] - $validRows[$count - 2]['weight'], 3)
                                 : 0;
+                            $d['delta24'] = 0; // recalculat mai jos pe 24h reale
                         }
 
                         // deltaDay = diferența față de citirea cea mai apropiată de acum 24h
@@ -1420,16 +1919,33 @@ if (isset($_GET['get_data']) && isset($_SESSION['authenticated'])) {
                                 if ($diff < $minDiff) { $minDiff = $diff; $closest = $r; }
                             }
                             if ($closest) {
-                                $d['deltaDay'] = round($validRows[$count - 1]['weight'] - $closest['weight'], 3);
+                                $d['deltaDay']  = round($validRows[$count - 1]['weight'] - $closest['weight'], 3);
+                                $d['delta24']   = $d['deltaDay']; // delta24 = schimbare adevarata pe 24h
                             }
                         }
 
-                        // Recoltă estimată: greutate - stup_gol(16) - magazii(7*n din meta) - albine(1.5)
-                        // Dacă rezultatul e negativ, stupul e sub greutatea de referință — estimăm 0
+                        // Recoltă estimată folosind greutățile din template salvat:
+                        // miere = greutate - corp_gol - (nr_magazii × (magazie_goală + nr_rame × ramă_foiță)) - albine(1.5)
                         $currentWeight  = $validRows[$count - 1]['weight'];
-                        $supersFromMeta = isset($meta[$cid]['supers']) ? intval($meta[$cid]['supers']) : 0;
-                        $d['supersCount']   = $supersFromMeta;
-                        $honeyEst           = $currentWeight - 16.0 - (7.0 * $supersFromMeta) - 1.5;
+                        $supersFromMeta = isset($meta[$cid]['supers'])       ? intval($meta[$cid]['supers'])         : 0;
+                        $superFrames    = isset($meta[$cid]['super_frames'])  ? intval($meta[$cid]['super_frames'])   : 0;
+
+                        // Greutăți din template salvat sau fallback standard Dadant 10
+                        $bodyKg        = isset($meta[$cid]['body_kg'])        ? (float)$meta[$cid]['body_kg']        : 16.0;
+                        $superKgUnit   = isset($meta[$cid]['super_kg'])       ? (float)$meta[$cid]['super_kg']       : 4.0;
+                        $superFrameKg  = isset($meta[$cid]['super_frame_kg']) ? (float)$meta[$cid]['super_frame_kg'] : 0.28;
+
+                        $d['supersCount'] = $supersFromMeta;
+                        $d['superFrames'] = $superFrames;
+
+                        // Greutate totală magazii = nr_mag × (mag_goală + nr_rame × ramă_foiță)
+                        $superTotalKg = 0;
+                        if ($supersFromMeta > 0) {
+                            $framesPerSuper = $superFrames > 0 ? $superFrames : 10; // fallback 10 rame
+                            $superTotalKg   = $supersFromMeta * ($superKgUnit + $framesPerSuper * $superFrameKg);
+                        }
+
+                        $honeyEst = $currentWeight - $bodyKg - $superTotalKg - 1.5;
                         $d['honeyEstimate'] = round(max(0, $honeyEst), 2);
                     }
                 }
