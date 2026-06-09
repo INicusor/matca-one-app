@@ -1,0 +1,13 @@
+---
+deployment:
+  tasks:
+    - export WEBPATH=/home/danc/public_html/
+    - /bin/mkdir -p $WEBPATH
+    - /bin/mkdir -p $WEBPATH/admin_console/assets
+    - /bin/mkdir -p $WEBPATH/assets
+    - /bin/mkdir -p $WEBPATH/views
+    - /bin/cp -f .htaccess *.php *.css *.js *.png manifest.json sw.js version.txt $WEBPATH 2>/dev/null || true
+    - /bin/cp -f admin_console/*.php $WEBPATH/admin_console/ 2>/dev/null || true
+    - /bin/cp -Rf admin_console/assets/* $WEBPATH/admin_console/assets/ 2>/dev/null || true
+    - /bin/cp -Rf assets/* $WEBPATH/assets/ 2>/dev/null || true
+    - /bin/cp -f views/*.php $WEBPATH/views/ 2>/dev/null || true
