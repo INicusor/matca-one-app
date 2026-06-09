@@ -1,7 +1,7 @@
 ---
 deployment:
   tasks:
-    - export WEBPATH=/home/danc/public_html/MPDashboard
+    - export WEBPATH=/home/danc/public_html/matca.one/
     - /bin/mkdir -p $WEBPATH
     - /bin/mkdir -p $WEBPATH/views
     - /bin/mkdir -p $WEBPATH/assets
