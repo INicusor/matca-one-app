@@ -1,4 +1,6 @@
-# Date utilizatori si jurnal - NICIODATA pe Git
+# ============================================
+# DATE UTILIZATORI - NICIODATA pe Git
+# ============================================
 user.json
 jurnal.json
 tasks.json
@@ -6,21 +8,53 @@ harvest.json
 expenses.json
 inventory.json
 alerte.json
+alerte_log.json
+alerte_rezolvate.json
 markers.json
+map_markers.json
 queen.json
+queen_history.json
 manual_hives.json
 controllers.json
 metadata.json
 rate_limit.json
+data.json
+data_old.json
+data_ref24.json
+data_test.json
+telemetry.json
+telemetry_history.json
+email_logs.json
+
+# ============================================
+# CREDENTIALE - NICIODATA pe Git
+# ============================================
+db_config.php
 admin_credentials.txt
+secrets.h
+.env
 
-# Uploads (poze din jurnal)
+# ============================================
+# FISIERE TEMPORARE / BACKUP
+# ============================================
+*.bak
+*.bak_*
+error_log
+*.log
+
+# ============================================
+# UPLOADS SI BACKUPS
+# ============================================
 /uploads/
-
-# Backup-uri
 /backups/
 
-# Fisiere sistem
+# ============================================
+# SISTEM
+# ============================================
 .DS_Store
 Thumbs.db
-*.log
+
+# ============================================
+# PERMITE manifest.json (nu e date sensibile)
+# ============================================
+!manifest.json
