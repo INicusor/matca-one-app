@@ -1,0 +1,5 @@
+# Forteaza detectia corecta a limbajelor
+*.ino linguist-language=C++
+*.js  linguist-language=JavaScript
+*.php linguist-language=PHP
+*.css linguist-language=CSS
