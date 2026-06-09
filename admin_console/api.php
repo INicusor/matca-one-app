@@ -13,8 +13,6 @@ if ($action === 'get_dashboard_stats') {
     $pdo = getAdminDB();
     $now = time();
 
-    // ── Status stupi ─────────────────────────────────────────
-    // Incearca DB, fallback JSON
     $online = 0; $offline = 0; $warning = 0;
     $totalW = 0; $wCnt   = 0;
     $dbHiveCount = 0;
@@ -38,7 +36,6 @@ if ($action === 'get_dashboard_stats') {
         } catch (PDOException $e) {}
     }
 
-    // Fallback JSON daca DB nu are date
     if ($dbHiveCount === 0) {
         $data = read_json('data.json');
         foreach ($data as $h) {
@@ -51,7 +48,6 @@ if ($action === 'get_dashboard_stats') {
         $dbHiveCount = count($data);
     }
 
-    // ── Counts din DB ─────────────────────────────────────────
     $usersTotal   = 0;
     $jurnalTotal  = 0;
     $tasksPending = 0;
@@ -72,7 +68,6 @@ if ($action === 'get_dashboard_stats') {
         } catch (PDOException $e) {}
     }
 
-    // Fallback JSON pentru counts
     if ($usersTotal === 0) {
         $users = read_json('user.json');
         $usersTotal = count($users);
@@ -99,20 +94,20 @@ if ($action === 'get_dashboard_stats') {
         }
     }
 
-    // ── Activitate 7 zile ────────────────────────────────────
+    // FIX: activitate 7 zile — folosim coloana 'date' (nu 'created_at' care nu exista)
     $activity = [];
     for ($i = 6; $i >= 0; $i--) {
         $activity[date('d.m', strtotime("-$i days"))] = 0;
     }
     if ($pdo) {
         try {
-            $rows = $pdo->query("SELECT date FROM mp_jurnal WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)")->fetchAll();
+            $cutoff7 = strtotime('-7 days');
+            $rows = $pdo->query("SELECT date FROM mp_jurnal WHERE ts >= $cutoff7")->fetchAll();
             foreach ($rows as $j) {
                 $d = substr($j['date'] ?? '', 0, 5);
                 if (isset($activity[$d])) $activity[$d]++;
             }
         } catch (PDOException $e) {
-            // Fallback JSON
             $jurnal = read_json('jurnal.json');
             foreach ($jurnal as $j) {
                 $d = substr($j['date'] ?? '', 0, 5);
@@ -139,9 +134,10 @@ if ($action === 'get_dashboard_stats') {
         'recolta_kg'     => $totalKg,
         'recolta_ron'    => $totalRon,
         'total_readings' => $totalReadings,
-        'activity'       => $activity,   // ← 'activity' nu 'activity_chart'
+        'activity'       => $activity,
     ]);
 }
+
 // ═══════════════════════════════════════════════════════════════
 // STUPI
 // ═══════════════════════════════════════════════════════════════
@@ -150,17 +146,14 @@ if ($action === 'get_hives') {
     $now  = time();
     $result = [];
 
-    // Citim intotdeauna si JSON-ul ca sursa de adevar pentru datele live
     $dataJson   = read_json('data.json');
     $metaJson   = read_json('metadata.json');
     $manualJson = read_json('manual_hives.json');
     $ctrlJson   = read_json('controllers.json');
 
-    // Indexam JSON dupa chipID
     $dataByChip = [];
     foreach ($dataJson as $h) { $dataByChip[(string)$h['chipID']] = $h; }
 
-    // Map controller din JSON
     $chipToCtrl = [];
     foreach ($ctrlJson as $cKey => $c) {
         foreach ($c['chipIDs'] ?? [] as $cid) {
@@ -170,11 +163,9 @@ if ($action === 'get_hives') {
 
     if ($pdo) {
         try {
-            // Ultima citire per chip din DB - folosim pentru date tehnice
             $rows = $pdo->query("
                 SELECT r.*, m.nickname, m.q_color, m.q_year, m.q_breed, m.q_score,
-                       m.maintenance, m.supers, m.lat, m.lng,
-                       m.weight_ref
+                       m.maintenance, m.supers, m.lat, m.lng, m.weight_ref
                 FROM mp_hive_readings r
                 INNER JOIN (SELECT chip_id, MAX(ts) as max_ts FROM mp_hive_readings GROUP BY chip_id) l
                   ON r.chip_id = l.chip_id AND r.ts = l.max_ts
@@ -182,14 +173,13 @@ if ($action === 'get_hives') {
                 ORDER BY r.chip_id
             ")->fetchAll();
 
-            // Controllere pentru nume
             $ctrls = [];
             try {
-                $ctrlRows = $pdo->query("SELECT controller_id, name, chip_ids FROM mp_controllers")->fetchAll();
+                $ctrlRows = $pdo->query("SELECT ctrl_id, name, chip_ids FROM mp_controllers")->fetchAll();
                 foreach ($ctrlRows as $c) {
                     $chips = json_decode($c['chip_ids'] ?? '[]', true) ?: [];
                     foreach ($chips as $cid) {
-                        $ctrls[(string)$cid] = ['id' => $c['controller_id'], 'name' => $c['name'] ?? $c['controller_id']];
+                        $ctrls[(string)$cid] = ['id' => $c['ctrl_id'], 'name' => $c['name'] ?? $c['ctrl_id']];
                     }
                 }
             } catch (PDOException $e) {}
@@ -198,7 +188,7 @@ if ($action === 'get_hives') {
                 $cid      = (string)$h['chip_id'];
                 $diff     = $now - (int)($h['ts'] ?? 0);
                 $status   = $diff < 7200 ? 'online' : ($diff < 86400 ? 'warning' : 'offline');
-                $ctrlInfo = $ctrls[$cid] ?? null;
+                $ctrlInfo = $ctrls[$cid] ?? $chipToCtrl[$cid] ?? null;
                 $result[] = [
                     'chipID'       => $cid,
                     'nickname'     => $h['nickname']    ?? 'Stup '.$cid,
@@ -226,7 +216,6 @@ if ($action === 'get_hives') {
                 ];
             }
 
-            // Stupi manuali fara readings
             $manualOnly = $pdo->query("SELECT h.chip_id, h.weight, h.temperature, h.battery, h.delta24, h.ts, h.creator, m.nickname, m.q_color, m.q_year, m.q_breed, m.q_score FROM mp_manual_hives h LEFT JOIN mp_metadata m ON h.chip_id = m.chip_id")->fetchAll();
             $withReadings = array_column($result, 'chipID');
             foreach ($manualOnly as $m) {
@@ -243,21 +232,21 @@ if ($action === 'get_hives') {
                         'qYear'        => $m['q_year']   ?? '',
                         'qBreed'       => $m['q_breed']  ?? '',
                         'qScore'       => (int)($m['q_score'] ?? 5),
-                        'supers'       => (int)($m['supers']  ?? 0),
-                        'maintenance'  => (bool)($m['maintenance'] ?? false),
+                        'supers'       => 0,
+                        'maintenance'  => false,
                         'lat'          => null, 'lng' => null,
                         'isManual'     => true,
                         'creator'      => $m['creator']  ?? '',
                     ];
                 }
             }
-            // Adaugam din JSON stupii care nu sunt in DB (submit.php nou poate nu ruleaza inca)
+
             $chipsInDB = array_column($result, 'chipID');
             foreach ($dataByChip as $cid => $h) {
-                if (in_array($cid, $chipsInDB)) continue; // deja in result din DB
-                $m      = $metaJson[$cid] ?? [];
-                $diff   = $now - ($h['lastUpdated'] ?? 0);
-                $status = $diff < 7200 ? 'online' : ($diff < 86400 ? 'warning' : 'offline');
+                if (in_array($cid, $chipsInDB)) continue;
+                $m        = $metaJson[$cid] ?? [];
+                $diff     = $now - ($h['lastUpdated'] ?? 0);
+                $status   = $diff < 7200 ? 'online' : ($diff < 86400 ? 'warning' : 'offline');
                 $ctrlInfo = $chipToCtrl[$cid] ?? null;
                 $result[] = [
                     'chipID'       => $cid,
@@ -288,11 +277,9 @@ if ($action === 'get_hives') {
             json_ok($result);
         } catch (PDOException $e) {
             error_log('[get_hives] DB error: ' . $e->getMessage());
-            // Fallback complet la JSON
         }
     }
 
-    // Fallback JSON complet daca DB nu e disponibil
     foreach ($dataByChip as $cid => $h) {
         $m        = $metaJson[$cid] ?? [];
         $diff     = $now - ($h['lastUpdated'] ?? 0);
@@ -372,7 +359,8 @@ if ($action === 'update_hive_meta') {
         }
     }
     write_json('metadata.json', $meta);
-    dbSync('hive_metadata', [
+    // FIX: tabela corecta mp_metadata
+    dbSync('mp_metadata', [
         'chip_id'     => $chipID,
         'nickname'    => $meta[$chipID]['nickname']    ?? '',
         'q_color'     => $meta[$chipID]['qColor']      ?? 'transparent',
@@ -401,7 +389,8 @@ if ($action === 'delete_hive_manual') {
     unset($meta[$chipID]);
     write_json('metadata.json', $meta);
 
-    dbDelete('manual_hives', $chipID, 'chip_id');
+    // FIX: tabela corecta mp_manual_hives
+    dbDelete('mp_manual_hives', $chipID, 'chip_id');
     audit('HIVE_DELETE', "Sters stup manual $chipID");
     json_ok();
 }
@@ -494,7 +483,8 @@ if ($action === 'delete_user') {
     if (!isset($users[$uname])) json_error('Utilizatorul nu exista');
     unset($users[$uname]);
     write_json('user.json', $users);
-    dbDelete('users', $uname, 'username');
+    // FIX: tabela corecta mp_users
+    dbDelete('mp_users', $uname, 'username');
     audit('USER_DELETE', "Sters user: $uname");
     json_ok();
 }
@@ -509,9 +499,9 @@ if ($action === 'get_controllers') {
 
     if ($pdo) {
         try {
+            // FIX: coloana ctrl_id (nu controller_id)
             $ctrls = $pdo->query("SELECT * FROM mp_controllers ORDER BY name")->fetchAll();
 
-            // Ultima citire per chip
             $latestReadings = [];
             $readRows = $pdo->query("
                 SELECT r.chip_id, r.weight, r.ts as lastUpdated
@@ -521,7 +511,6 @@ if ($action === 'get_controllers') {
             ")->fetchAll();
             foreach ($readRows as $r) $latestReadings[(string)$r['chip_id']] = $r;
 
-            // Metadata
             $metaRows = $pdo->query("SELECT chip_id, nickname FROM mp_metadata")->fetchAll();
             $metaMap  = [];
             foreach ($metaRows as $m) $metaMap[$m['chip_id']] = $m['nickname'];
@@ -541,8 +530,8 @@ if ($action === 'get_controllers') {
                     ];
                 }
                 $result[] = [
-                    'id'         => $c['controller_id'],
-                    'name'       => $c['name']     ?? $c['controller_id'],
+                    'id'         => $c['ctrl_id'],
+                    'name'       => $c['name']     ?? $c['ctrl_id'],
                     'lastSeen'   => (int)($c['last_seen'] ?? 0),
                     'ip'         => $c['ip']        ?? '',
                     'vbat'       => $c['vbat']      ?? null,
@@ -554,7 +543,6 @@ if ($action === 'get_controllers') {
             json_ok($result);
         } catch (PDOException $e) {
             error_log('[get_controllers] DB error: ' . $e->getMessage());
-            // Fallback la JSON
         }
     }
 
@@ -624,7 +612,7 @@ if ($action === 'get_jurnal') {
 
     if ($filter && $filter !== 'toate') {
         $keyword = '';
-        if ($filter === 'inspectii')  $keyword = 'inspect';
+        if ($filter === 'inspectii')      $keyword = 'inspect';
         elseif ($filter === 'tratamente') $keyword = 'tratam';
         elseif ($filter === 'sarcini')    $keyword = 'sarcin';
         elseif ($filter === 'ok')         $keyword = 'stup ok';
@@ -660,7 +648,8 @@ if ($action === 'delete_jurnal') {
     $new = [];
     foreach ($jurnal as $j) { if ($j['id'] !== $id) $new[] = $j; }
     write_json('jurnal.json', $new);
-    dbDelete('jurnal', $id);
+    // FIX: tabela corecta mp_jurnal
+    dbDelete('mp_jurnal', $id);
     audit('JURNAL_DELETE', "Sters nota $id");
     json_ok();
 }
@@ -710,7 +699,8 @@ if ($action === 'delete_harvest') {
     $new = [];
     foreach ($h as $r) { if ($r['id'] !== $id) $new[] = $r; }
     write_json('harvest.json', $new);
-    dbDelete('harvest', $id);
+    // FIX: tabela corecta mp_harvest
+    dbDelete('mp_harvest', $id);
     audit('HARVEST_DELETE', "Sters recolta $id");
     json_ok();
 }
@@ -722,7 +712,8 @@ if ($action === 'delete_expense') {
     $new = [];
     foreach ($e as $r) { if ($r['id'] !== $id) $new[] = $r; }
     write_json('expenses.json', $new);
-    dbDelete('expenses', $id);
+    // FIX: tabela corecta mp_expenses
+    dbDelete('mp_expenses', $id);
     audit('EXPENSE_DELETE', "Stearsa cheltuiala $id");
     json_ok();
 }
@@ -825,7 +816,8 @@ if ($action === 'delete_task') {
     $new = [];
     foreach ($t as $r) { if ($r['id'] !== $id) $new[] = $r; }
     write_json('tasks.json', $new);
-    dbDelete('tasks', $id);
+    // FIX: tabela corecta mp_tasks
+    dbDelete('mp_tasks', $id);
     audit('TASK_DELETE', "Stearsa sarcina $id");
     json_ok();
 }
@@ -872,7 +864,8 @@ if ($action === 'save_inventory_item') {
     unset($r);
     if (!$found) $inv[] = $row;
     write_json('inventory.json', $inv);
-    dbSync('inventory', $row);
+    // FIX: tabela corecta mp_inventory
+    dbSync('mp_inventory', $row);
     audit('INVENTORY_SAVE', "Salvat produs: $item");
     json_ok($row);
 }
@@ -883,7 +876,8 @@ if ($action === 'delete_inventory_item') {
     $new = [];
     foreach ($inv as $r) { if ($r['id'] !== $id) $new[] = $r; }
     write_json('inventory.json', $new);
-    dbDelete('inventory', $id);
+    // FIX: tabela corecta mp_inventory
+    dbDelete('mp_inventory', $id);
     audit('INVENTORY_DELETE', "Sters produs $id");
     json_ok();
 }
@@ -895,9 +889,13 @@ if ($action === 'get_db_stats') {
     $pdo = getAdminDB();
     if (!$pdo) json_error('Conexiune DB esuata');
 
-    $tables = ['jurnal','harvest','expenses','inventory','tasks',
-               'alerte_rezolvate','queen_history','hive_metadata',
-               'hive_history','hive_current','users','manual_hives','markers'];
+    // FIX: toate tabelele cu prefix mp_
+    $tables = [
+        'mp_hive_readings', 'mp_jurnal', 'mp_harvest', 'mp_expenses',
+        'mp_inventory', 'mp_tasks', 'mp_alerte', 'mp_queen_history',
+        'mp_metadata', 'mp_manual_hives', 'mp_controllers', 'mp_users',
+        'mp_markers', 'mp_apiary_location'
+    ];
     $stats = [];
     foreach ($tables as $t) {
         try {
@@ -926,9 +924,13 @@ if ($action === 'query_table') {
     $offset = max(0,   intval($_GET['offset'] ?? 0));
     $search = trim($_GET['search'] ?? '');
 
-    $allowed = ['jurnal','harvest','expenses','inventory','tasks','alerte_rezolvate',
-                'queen_history','hive_metadata','hive_history','hive_current',
-                'users','manual_hives','markers','alerte_log'];
+    // FIX: toate tabelele cu prefix mp_
+    $allowed = [
+        'mp_hive_readings', 'mp_jurnal', 'mp_harvest', 'mp_expenses',
+        'mp_inventory', 'mp_tasks', 'mp_alerte', 'mp_queen_history',
+        'mp_metadata', 'mp_manual_hives', 'mp_controllers', 'mp_users',
+        'mp_markers', 'mp_apiary_location'
+    ];
     if (!in_array($table, $allowed)) json_error('Tabel nepermis');
 
     try {
@@ -998,8 +1000,9 @@ if ($action === 'run_sql') {
 }
 
 if ($action === 'export_table_csv') {
+    // FIX: tabele cu prefix mp_
     $table   = preg_replace('/[^a-zA-Z0-9_]/', '', $_GET['table'] ?? '');
-    $allowed = ['jurnal','harvest','expenses','inventory','tasks'];
+    $allowed = ['mp_jurnal','mp_harvest','mp_expenses','mp_inventory','mp_tasks'];
     if (!in_array($table, $allowed)) json_error('Export nepermis');
     $pdo = getAdminDB();
     if (!$pdo) json_error('DB indisponibil');
@@ -1008,8 +1011,9 @@ if ($action === 'export_table_csv') {
     } catch (PDOException $e) {
         json_error('Export error: ' . $e->getMessage());
     }
+    $filename = str_replace('mp_', '', $table);
     header('Content-Type: text/csv; charset=utf-8');
-    header("Content-Disposition: attachment; filename={$table}_" . date('Ymd') . ".csv");
+    header("Content-Disposition: attachment; filename={$filename}_" . date('Ymd') . ".csv");
     $out = fopen('php://output', 'w');
     fprintf($out, chr(0xEF).chr(0xBB).chr(0xBF));
     if ($rows) {
@@ -1113,7 +1117,7 @@ if ($action === 'change_own_password') {
 // HISTORY
 // ═══════════════════════════════════════════════════════════════
 if ($action === 'get_hive_history') {
-    $chipID = preg_replace('/[^0-9]/', '', $_GET['chipID'] ?? '');
+    $chipID = preg_replace('/[^0-9a-zA-Z]/', '', $_GET['chipID'] ?? '');
     $days   = min(90, max(1, intval($_GET['days'] ?? 7)));
     if (!$chipID) json_error('chipID lipsa');
     $cutoff = time() - ($days * 86400);
@@ -1121,7 +1125,8 @@ if ($action === 'get_hive_history') {
     $pdo = getAdminDB();
     if ($pdo) {
         try {
-            $stmt = $pdo->prepare("SELECT ts, weight, temperature, battery FROM hive_history WHERE chip_id = ? AND ts >= ? ORDER BY ts ASC");
+            // FIX: tabela corecta mp_hive_readings (nu hive_history)
+            $stmt = $pdo->prepare("SELECT ts, weight, temperature, battery FROM mp_hive_readings WHERE chip_id = ? AND ts >= ? ORDER BY ts ASC");
             $stmt->execute([$chipID, $cutoff]);
             json_ok($stmt->fetchAll());
         } catch (PDOException $e) { /* fallback */ }
@@ -1144,7 +1149,7 @@ if ($action === 'logout') {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// QUEEN HISTORY — CRUD complet
+// QUEEN HISTORY
 // ═══════════════════════════════════════════════════════════════
 if ($action === 'get_queens') {
     $pdo    = getAdminDB();
@@ -1232,7 +1237,7 @@ if ($action === 'get_alerts_full') {
             $stmtC  = $pdo->prepare("SELECT COUNT(*) FROM mp_alerte $where");
             $stmtC->execute($params);
             $total  = (int)$stmtC->fetchColumn();
-            $stmt   = $pdo->prepare("SELECT * FROM mp_alerte $where ORDER BY created_at DESC LIMIT $limit OFFSET $offset");
+            $stmt   = $pdo->prepare("SELECT * FROM mp_alerte $where ORDER BY ts DESC LIMIT $limit OFFSET $offset");
             $stmt->execute($params);
             json_ok(['items' => $stmt->fetchAll(), 'total' => $total, 'pages' => (int)ceil($total/$limit)]);
         } catch (PDOException $e) { json_error('DB: '.$e->getMessage()); }
@@ -1365,10 +1370,18 @@ if ($action === 'get_admin_report') {
                 $users = $pdo->query("SELECT username FROM mp_users ORDER BY username")->fetchAll();
                 foreach ($users as $u) {
                     $un   = $u['username'];
-                    $jCnt = (int)$pdo->query("SELECT COUNT(*) FROM mp_jurnal WHERE `user`='".addslashes($un)."'")->fetchColumn();
-                    $tDone= (int)$pdo->query("SELECT COUNT(*) FROM mp_tasks WHERE `user`='".addslashes($un)."' AND done=1")->fetchColumn();
-                    $tPend= (int)$pdo->query("SELECT COUNT(*) FROM mp_tasks WHERE `user`='".addslashes($un)."' AND done=0")->fetchColumn();
-                    $last = $pdo->query("SELECT MAX(date) FROM mp_jurnal WHERE `user`='".addslashes($un)."'")->fetchColumn();
+                    $stmt = $pdo->prepare("SELECT COUNT(*) FROM mp_jurnal WHERE `user`=?");
+                    $stmt->execute([$un]);
+                    $jCnt = (int)$stmt->fetchColumn();
+                    $stmt = $pdo->prepare("SELECT COUNT(*) FROM mp_tasks WHERE `user`=? AND done=1");
+                    $stmt->execute([$un]);
+                    $tDone = (int)$stmt->fetchColumn();
+                    $stmt = $pdo->prepare("SELECT COUNT(*) FROM mp_tasks WHERE `user`=? AND done=0");
+                    $stmt->execute([$un]);
+                    $tPend = (int)$stmt->fetchColumn();
+                    $stmt = $pdo->prepare("SELECT MAX(date) FROM mp_jurnal WHERE `user`=?");
+                    $stmt->execute([$un]);
+                    $last = $stmt->fetchColumn();
                     $result[] = ['user'=>$un,'jurnal'=>$jCnt,'tasks_done'=>$tDone,'tasks_pending'=>$tPend,'last_activity'=>$last];
                 }
             } catch (PDOException $e) {}
@@ -1384,11 +1397,16 @@ if ($action === 'get_admin_report') {
                 foreach ($meta as $m) {
                     $cid  = $m['chip_id'];
                     $nick = $m['nickname'] ?: 'Stup '.$cid;
-                    $kg   = $pdo->query("SELECT COALESCE(SUM(kg),0) FROM mp_harvest WHERE stup='".addslashes($nick)."'")->fetchColumn();
-                    $ron  = $pdo->query("SELECT COALESCE(SUM(kg*pret),0) FROM mp_harvest WHERE stup='".addslashes($nick)."'")->fetchColumn();
-                    $exp  = $pdo->query("SELECT COALESCE(SUM(suma),0) FROM mp_expenses WHERE stup='".addslashes($nick)."'")->fetchColumn();
-                    $readings = (int)$pdo->query("SELECT COUNT(*) FROM mp_hive_readings WHERE chip_id='".addslashes($cid)."'")->fetchColumn();
-                    $lastJ = $pdo->query("SELECT MAX(date) FROM mp_jurnal WHERE stup='".addslashes($nick)."'")->fetchColumn();
+                    $stmt = $pdo->prepare("SELECT COALESCE(SUM(kg),0) FROM mp_harvest WHERE stup=?");
+                    $stmt->execute([$nick]); $kg = $stmt->fetchColumn();
+                    $stmt = $pdo->prepare("SELECT COALESCE(SUM(kg*pret),0) FROM mp_harvest WHERE stup=?");
+                    $stmt->execute([$nick]); $ron = $stmt->fetchColumn();
+                    $stmt = $pdo->prepare("SELECT COALESCE(SUM(suma),0) FROM mp_expenses WHERE stup=?");
+                    $stmt->execute([$nick]); $exp = $stmt->fetchColumn();
+                    $stmt = $pdo->prepare("SELECT COUNT(*) FROM mp_hive_readings WHERE chip_id=?");
+                    $stmt->execute([$cid]); $readings = (int)$stmt->fetchColumn();
+                    $stmt = $pdo->prepare("SELECT MAX(date) FROM mp_jurnal WHERE stup=?");
+                    $stmt->execute([$nick]); $lastJ = $stmt->fetchColumn();
                     $result[] = ['chip_id'=>$cid,'nickname'=>$nick,'kg_total'=>round(floatval($kg),2),'ron_total'=>round(floatval($ron),2),'expenses'=>round(floatval($exp),2),'profit'=>round(floatval($ron)-floatval($exp),2),'readings'=>$readings,'last_jurnal'=>$lastJ];
                 }
             } catch (PDOException $e) {}
@@ -1430,11 +1448,7 @@ if ($action === 'backup_json') {
     }
     $histDir = APP_ROOT.'/history';
     if (is_dir($histDir)) { foreach (glob($histDir.'/*.json') ?: [] as $hf) { $zip->addFile($hf,'history/'.basename($hf)); $added++; } }
-    $zip->addFromString('README.txt', "Backup MatcaDB
-Generat: ".date('d.m.Y H:i:s')."
-Admin: ".admin_current_user()."
-Fisiere: $added
-");
+    $zip->addFromString('README.txt', "Backup MatcaDB\nGenerat: ".date('d.m.Y H:i:s')."\nAdmin: ".admin_current_user()."\nFisiere: $added\n");
     $zip->close();
     audit('BACKUP', "JSON backup: $added fisiere");
     header('Content-Type: application/zip');
@@ -1450,49 +1464,30 @@ if ($action === 'backup_sql') {
     if (admin_current_role() !== 'superadmin') json_error('Necesita superadmin', 403);
     $pdo = getAdminDB();
     if (!$pdo) json_error('DB indisponibil');
-    $tables = ['mp_hive_readings','mp_telemetry_history','mp_metadata','mp_manual_hives','mp_controllers','mp_users','mp_jurnal','mp_tasks','mp_harvest','mp_expenses','mp_inventory','mp_queen_history','mp_markers','mp_alerte','mp_apiary_location'];
+    $tables = ['mp_hive_readings','mp_metadata','mp_manual_hives','mp_controllers','mp_users','mp_jurnal','mp_tasks','mp_harvest','mp_expenses','mp_inventory','mp_queen_history','mp_markers','mp_alerte','mp_apiary_location'];
     $filename = 'matca_db_backup_'.date('Ymd_His').'.sql';
     header('Content-Type: application/sql');
     header('Content-Disposition: attachment; filename="'.$filename.'"');
     header('Cache-Control: no-cache');
-    echo "-- MatcaDB SQL Backup
--- Generat: ".date('d.m.Y H:i:s')."
--- Admin: ".admin_current_user()."
-
-SET NAMES utf8mb4;
-SET FOREIGN_KEY_CHECKS=0;
-
-";
+    echo "-- MatcaDB SQL Backup\n-- Generat: ".date('d.m.Y H:i:s')."\n-- Admin: ".admin_current_user()."\n\nSET NAMES utf8mb4;\nSET FOREIGN_KEY_CHECKS=0;\n\n";
     foreach ($tables as $table) {
         try {
             $create = $pdo->query("SHOW CREATE TABLE `$table`")->fetch();
-            echo "-- Table: $table
-DROP TABLE IF EXISTS `$table`;
-".$create['Create Table'].";
-
-";
+            echo "-- Table: $table\nDROP TABLE IF EXISTS `$table`;\n".$create['Create Table'].";\n\n";
             $rows = $pdo->query("SELECT * FROM `$table`")->fetchAll();
             if ($rows) {
                 $cols = '`'.implode('`,`', array_keys($rows[0])).'`';
-                echo "INSERT INTO `$table` ($cols) VALUES
-";
+                echo "INSERT INTO `$table` ($cols) VALUES\n";
                 $lines = [];
                 foreach ($rows as $row) {
                     $vals = array_map(function($v){ return $v===null?'NULL':"'".addslashes($v)."'"; }, array_values($row));
                     $lines[] = '('.implode(',',$vals).')';
                 }
-                echo implode(",
-",$lines).";
-
-";
+                echo implode(",\n",$lines).";\n\n";
             }
-        } catch (PDOException $e) { echo "-- EROARE la $table: ".$e->getMessage()."
-
-"; }
+        } catch (PDOException $e) { echo "-- EROARE la $table: ".$e->getMessage()."\n\n"; }
     }
-    echo "SET FOREIGN_KEY_CHECKS=1;
--- END BACKUP
-";
+    echo "SET FOREIGN_KEY_CHECKS=1;\n-- END BACKUP\n";
     audit('BACKUP', 'SQL dump generat');
     exit;
 }
@@ -1506,7 +1501,7 @@ if ($action === 'get_backup_info') {
     }
     $info['history_files'] = count(glob(APP_ROOT.'/history/*.json') ?: []);
     if ($pdo) {
-        foreach (['mp_hive_readings','mp_telemetry_history','mp_metadata','mp_manual_hives','mp_controllers','mp_users','mp_jurnal','mp_tasks','mp_harvest','mp_expenses','mp_inventory','mp_queen_history','mp_markers','mp_alerte','mp_apiary_location'] as $t) {
+        foreach (['mp_hive_readings','mp_metadata','mp_manual_hives','mp_controllers','mp_users','mp_jurnal','mp_tasks','mp_harvest','mp_expenses','mp_inventory','mp_queen_history','mp_markers','mp_alerte','mp_apiary_location'] as $t) {
             try { $cnt=(int)$pdo->query("SELECT COUNT(*) FROM `$t`")->fetchColumn(); $info['db_tables'][]=['name'=>$t,'rows'=>$cnt]; $info['total_db_rows']+=$cnt; }
             catch (PDOException $e) { $info['db_tables'][]=['name'=>$t,'rows'=>null]; }
         }
