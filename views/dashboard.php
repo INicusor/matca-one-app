@@ -5,7 +5,7 @@
 
   <input type="text" 
          id="dashboard-search" 
-         placeholder="ðŸ”Ž CautÄƒ stup (nume sau ID)..." 
+         placeholder="🔎 Caută stup (nume sau ID)..." 
          autocomplete="off" 
          readonly 
          onfocus="this.removeAttribute('readonly');">
