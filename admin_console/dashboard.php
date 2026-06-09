@@ -37,6 +37,9 @@ $csrf      = csrf_token();
         <span class="nav-icon">&#9829;</span> System Health
         <span class="nav-badge" id="health-badge" style="display:none;background:var(--red)">!</span>
       </a>
+      <a class="nav-item" onclick="showView('telemetry',this)">
+        <span class="nav-icon">&#128225;</span> Telemetrie Live
+      </a>
     </div>
 
     <div class="sidebar-section">
@@ -90,8 +93,17 @@ $csrf      = csrf_token();
         <span class="nav-icon">&#128220;</span> Audit Log
       </a>
       <?php if ($adminRole === 'superadmin'): ?>
+      <a class="nav-item" onclick="showView('history_mgmt',this)">
+        <span class="nav-icon">&#128204;</span> Gestionare History
+      </a>
+      <a class="nav-item" onclick="showView('json_editor',this)">
+        <span class="nav-icon">&#123;</span> Editor JSON
+      </a>
       <a class="nav-item" onclick="showView('admins',this)">
         <span class="nav-icon">&#128274;</span> Admin Users
+      </a>
+      <a class="nav-item" onclick="showView('errorlog',this)">
+        <span class="nav-icon">&#128030;</span> Error Log
       </a>
       <?php endif; ?>
       <a class="nav-item" onclick="showView('settings',this)">
@@ -124,9 +136,7 @@ $csrf      = csrf_token();
 
     <div id="content">
 
-      <!-- ═══════════════════════════════════════════════════
-           VIEW: DASHBOARD
-           ═══════════════════════════════════════════════════ -->
+      <!-- VIEW: DASHBOARD -->
       <div class="view active" id="view-dashboard">
         <div class="stat-grid" id="stat-grid">
           <div class="stat-card" style="--accent:var(--green)"><div class="stat-value" id="s-online">-</div><div class="stat-label">Stupi Online</div></div>
@@ -140,9 +150,7 @@ $csrf      = csrf_token();
         </div>
         <div class="two-col">
           <div class="card">
-            <div class="card-header">
-              <div class="card-title">Activitate Jurnal (7 zile)</div>
-            </div>
+            <div class="card-header"><div class="card-title">Activitate Jurnal (7 zile)</div></div>
             <div class="chart-box"><canvas id="activity-chart"></canvas></div>
           </div>
           <div class="card">
@@ -150,7 +158,6 @@ $csrf      = csrf_token();
             <div class="chart-box"><canvas id="status-chart"></canvas></div>
           </div>
         </div>
-        <!-- Grafic greutate stupi -->
         <div class="card" style="margin-top:16px">
           <div class="card-header">
             <div class="card-title">&#9878; Evolutie Greutate Stupi</div>
@@ -169,9 +176,7 @@ $csrf      = csrf_token();
         </div>
       </div>
 
-      <!-- ═══════════════════════════════════════════════════
-           VIEW: SYSTEM HEALTH
-           ═══════════════════════════════════════════════════ -->
+      <!-- VIEW: SYSTEM HEALTH -->
       <div class="view" id="view-health">
         <div class="toolbar">
           <button class="btn btn-primary btn-sm" onclick="loadHealth()">&#8635; Refresh Health Check</button>
@@ -182,9 +187,34 @@ $csrf      = csrf_token();
         </div>
       </div>
 
-      <!-- ═══════════════════════════════════════════════════
-           VIEW: STUPI
-           ═══════════════════════════════════════════════════ -->
+      <!-- VIEW: TELEMETRIE LIVE -->
+      <div class="view" id="view-telemetry">
+        <div class="toolbar">
+          <button class="btn btn-primary btn-sm" onclick="loadTelemetry()">&#8635; Refresh</button>
+          <label class="form-check" style="font-size:12px;margin-left:8px">
+            <input type="checkbox" id="telemetry-autorefresh" onchange="toggleTelemetryAutoRefresh()"> Auto-refresh 30s
+          </label>
+          <span id="telemetry-last-update" style="font-size:11px;color:var(--text-muted);margin-left:8px"></span>
+        </div>
+        <div class="card" style="padding:0">
+          <div class="table-wrap scroll-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Status</th><th>Stup</th><th>Chip ID</th>
+                  <th>Greutate</th><th>Temp</th><th>Baterie</th>
+                  <th>Delta 24h</th><th>WiFi</th><th>Firmware</th><th>Acum</th><th>Actiuni</th>
+                </tr>
+              </thead>
+              <tbody id="telemetry-tbody">
+                <tr class="loading-row"><td colspan="11"><div class="spinner"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW: STUPI -->
       <div class="view" id="view-hives">
         <div class="toolbar">
           <div class="search-bar">
@@ -213,10 +243,7 @@ $csrf      = csrf_token();
                   <th onclick="sortTable('hives','temperature')">Temp</th>
                   <th onclick="sortTable('hives','battery')">Baterie</th>
                   <th onclick="sortTable('hives','delta24')">Delta 24h</th>
-                  <th>Controller</th>
-                  <th>Firmware</th>
-                  <th>Ultima citire</th>
-                  <th>Actiuni</th>
+                  <th>Controller</th><th>Firmware</th><th>Ultima citire</th><th>Actiuni</th>
                 </tr>
               </thead>
               <tbody id="hives-tbody">
@@ -227,9 +254,7 @@ $csrf      = csrf_token();
         </div>
       </div>
 
-      <!-- ═══════════════════════════════════════════════════
-           VIEW: CONTROLLERS
-           ═══════════════════════════════════════════════════ -->
+      <!-- VIEW: CONTROLLERS -->
       <div class="view" id="view-controllers">
         <div class="toolbar">
           <button class="btn btn-ghost btn-sm" onclick="loadControllers()">&#8635; Refresh</button>
@@ -237,42 +262,28 @@ $csrf      = csrf_token();
         <div id="controllers-list"></div>
       </div>
 
-      <!-- ═══════════════════════════════════════════════════
-           VIEW: MATCI (Queen History)
-           ═══════════════════════════════════════════════════ -->
+      <!-- VIEW: MATCI -->
       <div class="view" id="view-queens">
         <div class="toolbar">
-          <select id="queen-filter-hive" onchange="loadQueens()" style="width:auto">
-            <option value="">Toti stupii</option>
-          </select>
+          <select id="queen-filter-hive" onchange="loadQueens()" style="width:auto"><option value="">Toti stupii</option></select>
           <button class="btn btn-primary btn-sm" onclick="openQueenModal()">+ Eveniment Nou</button>
           <button class="btn btn-ghost btn-sm" onclick="loadQueens()">&#8635;</button>
         </div>
         <div class="card" style="padding:0">
           <div class="table-wrap scroll-table">
             <table>
-              <thead>
-                <tr>
-                  <th>Data</th><th>Stup</th><th>Eveniment</th><th>Rasa</th><th>An</th><th>Note</th><th>User</th><th>Actiuni</th>
-                </tr>
-              </thead>
-              <tbody id="queens-tbody">
-                <tr class="loading-row"><td colspan="8"><div class="spinner"></div></td></tr>
-              </tbody>
+              <thead><tr><th>Data</th><th>Stup</th><th>Eveniment</th><th>Rasa</th><th>An</th><th>Note</th><th>User</th><th>Actiuni</th></tr></thead>
+              <tbody id="queens-tbody"><tr class="loading-row"><td colspan="8"><div class="spinner"></div></td></tr></tbody>
             </table>
           </div>
         </div>
         <div class="pagination" id="queens-pagination"></div>
       </div>
 
-      <!-- ═══════════════════════════════════════════════════
-           VIEW: ALERTE — istoric complet
-           ═══════════════════════════════════════════════════ -->
+      <!-- VIEW: ALERTE -->
       <div class="view" id="view-alerts">
         <div class="toolbar">
-          <select id="alert-filter-stup" onchange="loadAlertsFull()" style="width:auto">
-            <option value="">Toti stupii</option>
-          </select>
+          <select id="alert-filter-stup" onchange="loadAlertsFull()" style="width:auto"><option value="">Toti stupii</option></select>
           <button class="btn btn-ghost btn-sm" onclick="loadAlertsFull()">&#8635; Refresh</button>
           <?php if ($adminRole === 'superadmin'): ?>
           <button class="btn btn-danger btn-sm" onclick="deleteAllAlerts()">&#128465; Sterge Tot</button>
@@ -281,27 +292,18 @@ $csrf      = csrf_token();
         <div class="card" style="padding:0">
           <div class="table-wrap scroll-table">
             <table>
-              <thead>
-                <tr><th>Data</th><th>Stup</th><th>Mesaj</th><th>Rezolvata de</th><th>Actiuni</th></tr>
-              </thead>
-              <tbody id="alerts-tbody">
-                <tr class="loading-row"><td colspan="5"><div class="spinner"></div></td></tr>
-              </tbody>
+              <thead><tr><th>Data</th><th>Stup</th><th>Mesaj</th><th>Rezolvata de</th><th>Actiuni</th></tr></thead>
+              <tbody id="alerts-tbody"><tr class="loading-row"><td colspan="5"><div class="spinner"></div></td></tr></tbody>
             </table>
           </div>
         </div>
         <div class="pagination" id="alerts-pagination"></div>
       </div>
 
-      <!-- ═══════════════════════════════════════════════════
-           VIEW: JURNAL
-           ═══════════════════════════════════════════════════ -->
+      <!-- VIEW: JURNAL -->
       <div class="view" id="view-jurnal">
         <div class="toolbar">
-          <div class="search-bar">
-            <span class="search-icon">&#9906;</span>
-            <input type="text" id="jurnal-search" placeholder="Cauta in jurnal...">
-          </div>
+          <div class="search-bar"><span class="search-icon">&#9906;</span><input type="text" id="jurnal-search" placeholder="Cauta in jurnal..."></div>
           <select id="jurnal-filter-stup" style="width:auto" onchange="loadJurnal()"><option value="">Toti stupii</option></select>
           <select id="jurnal-filter-user" style="width:auto" onchange="loadJurnal()"><option value="">Toti userii</option></select>
           <select id="jurnal-filter-type" style="width:auto" onchange="loadJurnal()">
@@ -312,21 +314,18 @@ $csrf      = csrf_token();
             <option value="ok">Stup OK</option>
           </select>
           <button class="btn btn-ghost btn-sm" onclick="loadJurnal()">&#8635;</button>
+          <button class="btn btn-ghost btn-sm" onclick="exportReportCSV('jurnal_complet')">&#8595; CSV</button>
         </div>
         <div class="card" style="padding:0">
           <div class="table-wrap scroll-table">
-            <table>
-              <thead><tr><th>Data</th><th>Stup</th><th>User</th><th>Nota</th><th>Foto</th><th>Actiuni</th></tr></thead>
-              <tbody id="jurnal-tbody"></tbody>
-            </table>
+            <table><thead><tr><th>Data</th><th>Stup</th><th>User</th><th>Nota</th><th>Foto</th><th>Actiuni</th></tr></thead>
+            <tbody id="jurnal-tbody"></tbody></table>
           </div>
         </div>
         <div class="pagination" id="jurnal-pagination"></div>
       </div>
 
-      <!-- ═══════════════════════════════════════════════════
-           VIEW: RECOLTA & CHELTUIELI
-           ═══════════════════════════════════════════════════ -->
+      <!-- VIEW: RECOLTA & CHELTUIELI -->
       <div class="view" id="view-harvest">
         <div class="tabs">
           <button class="tab-btn active" onclick="switchTab('harvest','recolta',this)">Recolta</button>
@@ -337,6 +336,7 @@ $csrf      = csrf_token();
           <div class="toolbar">
             <select id="harvest-filter-year" style="width:auto" onchange="loadHarvest()"><option value="">Toti anii</option></select>
             <button class="btn btn-ghost btn-sm" onclick="loadHarvest()">&#8635;</button>
+            <button class="btn btn-ghost btn-sm" onclick="exportReportCSV('financiar_complet')">&#8595; CSV Financiar</button>
           </div>
           <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:12px">
             <div class="stat-card"><div class="stat-value" id="h-total-kg">-</div><div class="stat-label">Kg Total</div></div>
@@ -361,9 +361,7 @@ $csrf      = csrf_token();
         <div class="tab-panel" id="harvest-tab-roi"><div id="roi-stats"></div></div>
       </div>
 
-      <!-- ═══════════════════════════════════════════════════
-           VIEW: TASKS
-           ═══════════════════════════════════════════════════ -->
+      <!-- VIEW: TASKS -->
       <div class="view" id="view-tasks">
         <div class="toolbar">
           <select id="tasks-filter" style="width:auto" onchange="loadTasks()">
@@ -380,9 +378,7 @@ $csrf      = csrf_token();
         </div>
       </div>
 
-      <!-- ═══════════════════════════════════════════════════
-           VIEW: INVENTAR
-           ═══════════════════════════════════════════════════ -->
+      <!-- VIEW: INVENTAR -->
       <div class="view" id="view-inventory">
         <div class="toolbar">
           <button class="btn btn-primary btn-sm" onclick="openInventoryModal()">+ Adauga Produs</button>
@@ -396,13 +392,12 @@ $csrf      = csrf_token();
         </div>
       </div>
 
-      <!-- ═══════════════════════════════════════════════════
-           VIEW: USERS
-           ═══════════════════════════════════════════════════ -->
+      <!-- VIEW: USERS -->
       <div class="view" id="view-users">
         <div class="toolbar">
           <button class="btn btn-primary btn-sm" onclick="openUserModal()">+ Utilizator Nou</button>
           <button class="btn btn-ghost btn-sm" onclick="loadUsers()">&#8635;</button>
+          <button class="btn btn-ghost btn-sm" onclick="exportReportCSV('users_complet')">&#8595; CSV</button>
         </div>
         <div class="card" style="padding:0">
           <div class="table-wrap scroll-table">
@@ -412,85 +407,110 @@ $csrf      = csrf_token();
         </div>
       </div>
 
-      <!-- ═══════════════════════════════════════════════════
-           VIEW: RAPOARTE ADMIN
-           ═══════════════════════════════════════════════════ -->
+      <!-- VIEW: RAPOARTE ADMIN -->
       <div class="view" id="view-reports">
         <div class="tabs">
           <button class="tab-btn active" onclick="switchTab('reports','activity',this);loadReportActivity()">Activitate Useri</button>
           <button class="tab-btn" onclick="switchTab('reports','performance',this);loadReportHivePerf()">Performanta Stupi</button>
           <button class="tab-btn" onclick="switchTab('reports','growth',this);loadReportGrowth()">Crestere Date</button>
+          <button class="tab-btn" onclick="switchTab('reports','monthly',this);loadReportMonthly()">Raport Lunar</button>
+          <button class="tab-btn" onclick="switchTab('reports','financial',this);loadReportFinancial()">Raport Financiar</button>
         </div>
 
-        <!-- Tab: Activitate useri -->
         <div class="tab-panel active" id="reports-tab-activity">
-          <div class="card" style="padding:0;margin-top:12px">
+          <div class="toolbar" style="margin-top:12px">
+            <button class="btn btn-ghost btn-sm" onclick="exportReportCSV('audit_complet')">&#8595; Export Audit CSV</button>
+          </div>
+          <div class="card" style="padding:0;margin-top:8px">
             <div class="table-wrap scroll-table">
               <table>
                 <thead><tr><th>Utilizator</th><th>Intrari Jurnal</th><th>Sarcini Done</th><th>Sarcini Pending</th><th>Ultima Activitate</th></tr></thead>
-                <tbody id="report-activity-tbody">
-                  <tr class="loading-row"><td colspan="5"><div class="spinner"></div></td></tr>
-                </tbody>
+                <tbody id="report-activity-tbody"><tr class="loading-row"><td colspan="5"><div class="spinner"></div></td></tr></tbody>
               </table>
             </div>
           </div>
         </div>
 
-        <!-- Tab: Performanta stupi -->
         <div class="tab-panel" id="reports-tab-performance">
-          <div class="card" style="padding:0;margin-top:12px">
+          <div class="toolbar" style="margin-top:12px">
+            <button class="btn btn-ghost btn-sm" onclick="exportReportCSV('stupi_complet')">&#8595; Export Stupi CSV</button>
+          </div>
+          <div class="card" style="padding:0;margin-top:8px">
             <div class="table-wrap scroll-table">
               <table>
                 <thead><tr><th>Stup</th><th>Chip ID</th><th>Kg Recoltati</th><th>Venit RON</th><th>Cheltuieli RON</th><th>Profit</th><th>Citiri IoT</th><th>Ultima Inspectie</th></tr></thead>
-                <tbody id="report-perf-tbody">
-                  <tr class="loading-row"><td colspan="8"><div class="spinner"></div></td></tr>
-                </tbody>
+                <tbody id="report-perf-tbody"><tr class="loading-row"><td colspan="8"><div class="spinner"></div></td></tr></tbody>
               </table>
             </div>
           </div>
         </div>
 
-        <!-- Tab: Crestere date -->
         <div class="tab-panel" id="reports-tab-growth">
           <div class="card" style="margin-top:12px">
             <div class="card-header"><div class="card-title">Citiri IoT per zi (ultimele 30 zile)</div></div>
             <div style="height:300px;position:relative"><canvas id="growth-chart"></canvas></div>
           </div>
         </div>
+
+        <!-- Tab: Raport Lunar -->
+        <div class="tab-panel" id="reports-tab-monthly">
+          <div class="toolbar" style="margin-top:12px">
+            <select id="report-month-year" style="width:auto" onchange="loadReportMonthly()"></select>
+            <select id="report-month-month" style="width:auto" onchange="loadReportMonthly()">
+              <option value="1">Ianuarie</option><option value="2">Februarie</option><option value="3">Martie</option>
+              <option value="4">Aprilie</option><option value="5">Mai</option><option value="6">Iunie</option>
+              <option value="7">Iulie</option><option value="8">August</option><option value="9">Septembrie</option>
+              <option value="10">Octombrie</option><option value="11">Noiembrie</option><option value="12">Decembrie</option>
+            </select>
+            <button class="btn btn-ghost btn-sm" onclick="loadReportMonthly()">&#8635;</button>
+          </div>
+          <div id="report-monthly-content"></div>
+        </div>
+
+        <!-- Tab: Raport Financiar -->
+        <div class="tab-panel" id="reports-tab-financial">
+          <div class="toolbar" style="margin-top:12px">
+            <select id="report-fin-year" style="width:auto" onchange="loadReportFinancial()"></select>
+            <button class="btn btn-ghost btn-sm" onclick="loadReportFinancial()">&#8635;</button>
+            <button class="btn btn-ghost btn-sm" onclick="exportReportCSV('financiar_complet')">&#8595; Export CSV</button>
+          </div>
+          <div id="report-financial-content"></div>
+        </div>
       </div>
 
-      <!-- ═══════════════════════════════════════════════════
-           VIEW: BACKUP & EXPORT
-           ═══════════════════════════════════════════════════ -->
+      <!-- VIEW: BACKUP & EXPORT -->
       <div class="view" id="view-backup">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
-
-          <!-- JSON Backup -->
           <div class="card">
             <div class="card-header"><div class="card-title">&#128190; Backup JSON</div></div>
             <p style="color:var(--text-secondary);font-size:13px;line-height:1.7;margin-bottom:16px">
-              Descarca toate fisierele JSON ale aplicatiei intr-o arhiva ZIP:<br>
-              <code style="font-size:11px;color:var(--honey)">data.json, metadata.json, user.json, jurnal.json, tasks.json, harvest.json, expenses.json, inventory.json, queen_history.json, map_markers.json, alerte_rezolvate.json, history/*.json</code>
+              Descarca toate fisierele JSON ale aplicatiei intr-o arhiva ZIP.
             </p>
-            <button class="btn btn-primary" onclick="downloadBackupJSON()" style="width:100%">
-              &#8595; Descarca ZIP JSON
-            </button>
+            <button class="btn btn-primary" onclick="downloadBackupJSON()" style="width:100%">&#8595; Descarca ZIP JSON</button>
           </div>
-
-          <!-- SQL Backup -->
           <div class="card">
             <div class="card-header"><div class="card-title">&#128440; Dump SQL Database</div></div>
             <p style="color:var(--text-secondary);font-size:13px;line-height:1.7;margin-bottom:16px">
-              Genereaza un dump SQL complet al tuturor tabelelor <code style="color:var(--honey)">mp_*</code> din MatcaDB.<br>
-              Include CREATE TABLE + toate datele ca INSERT statements.
+              Genereaza un dump SQL complet al tuturor tabelelor <code style="color:var(--honey)">mp_*</code>.
             </p>
             <?php if ($adminRole === 'superadmin'): ?>
-            <button class="btn btn-primary" onclick="downloadBackupSQL()" style="width:100%">
-              &#8595; Descarca SQL Dump
-            </button>
+            <button class="btn btn-primary" onclick="downloadBackupSQL()" style="width:100%">&#8595; Descarca SQL Dump</button>
             <?php else: ?>
             <div class="alert-banner alert-warning" style="margin:0">Necesita rol superadmin.</div>
             <?php endif; ?>
+          </div>
+        </div>
+
+        <!-- Export Rapoarte CSV -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-header"><div class="card-title">&#128196; Export Rapoarte CSV</div></div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;padding:4px">
+            <button class="btn btn-ghost btn-sm" onclick="exportReportCSV('stupi_complet')" style="justify-content:flex-start">&#8595; Stupi Complet</button>
+            <button class="btn btn-ghost btn-sm" onclick="exportReportCSV('jurnal_complet')" style="justify-content:flex-start">&#8595; Jurnal Complet</button>
+            <button class="btn btn-ghost btn-sm" onclick="exportReportCSV('financiar_complet')" style="justify-content:flex-start">&#8595; Financiar Complet</button>
+            <button class="btn btn-ghost btn-sm" onclick="exportReportCSV('users_complet')" style="justify-content:flex-start">&#8595; Utilizatori</button>
+            <button class="btn btn-ghost btn-sm" onclick="exportReportCSV('alerte_complet')" style="justify-content:flex-start">&#8595; Alerte</button>
+            <button class="btn btn-ghost btn-sm" onclick="exportReportCSV('audit_complet')" style="justify-content:flex-start">&#8595; Audit Log</button>
           </div>
         </div>
 
@@ -501,13 +521,13 @@ $csrf      = csrf_token();
             <button class="btn btn-ghost btn-sm" onclick="loadBackupInfo()">&#8635; Refresh</button>
           </div>
           <div id="backup-info-content">
-            <div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px">Apasa Refresh pentru a vedea starea curenta a datelor...</div>
+            <div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px">Apasa Refresh pentru a vedea starea curenta...</div>
           </div>
         </div>
 
         <!-- Export CSV per tabel -->
         <div class="card" style="margin-top:0">
-          <div class="card-header"><div class="card-title">&#128196; Export CSV per Tabel</div></div>
+          <div class="card-header"><div class="card-title">&#128196; Export CSV per Tabel DB</div></div>
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;padding:4px">
             <?php
             $exportTables = ['mp_jurnal','mp_harvest','mp_expenses','mp_inventory','mp_tasks','mp_hive_readings'];
@@ -519,11 +539,28 @@ $csrf      = csrf_token();
             <?php endforeach; ?>
           </div>
         </div>
+
+        <?php if ($adminRole === 'superadmin'): ?>
+        <!-- Sync JSON → DB -->
+        <div class="card" style="margin-top:0">
+          <div class="card-header"><div class="card-title">&#128260; Sincronizare JSON &#8594; DB</div></div>
+          <p style="color:var(--text-secondary);font-size:13px;margin-bottom:12px">Forteaza rescrierea tuturor datelor din fisierele JSON in baza de date MySQL. Foloseste cand suspectezi ca DB si JSON sunt out of sync.</p>
+          <button class="btn btn-warning" onclick="syncJsonToDb()">&#128260; Sincronizeaza Acum</button>
+          <div id="sync-result" style="margin-top:12px"></div>
+        </div>
+        <?php endif; ?>
+
+        <!-- Test Email -->
+        <div class="card" style="margin-top:0">
+          <div class="card-header"><div class="card-title">&#128231; Test Email</div></div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="email" id="test-email-to" placeholder="adresa@email.com" style="flex:1">
+            <button class="btn btn-primary" onclick="sendTestEmail()">Trimite Test</button>
+          </div>
+        </div>
       </div>
 
-      <!-- ═══════════════════════════════════════════════════
-           VIEW: DATABASE
-           ═══════════════════════════════════════════════════ -->
+      <!-- VIEW: DATABASE -->
       <div class="view" id="view-database">
         <div class="tabs">
           <button class="tab-btn active" onclick="switchTab('db','browser',this)">Browser Tabele</button>
@@ -533,10 +570,7 @@ $csrf      = csrf_token();
         <div class="tab-panel active" id="db-tab-browser">
           <div class="db-table-list" id="db-table-list"></div>
           <div class="toolbar" id="db-browser-toolbar" style="display:none">
-            <div class="search-bar">
-              <span class="search-icon">&#9906;</span>
-              <input type="text" id="db-search" placeholder="Cauta...">
-            </div>
+            <div class="search-bar"><span class="search-icon">&#9906;</span><input type="text" id="db-search" placeholder="Cauta..."></div>
             <button class="btn btn-ghost btn-sm" onclick="browseTable()">Cauta</button>
             <button class="btn btn-ghost btn-sm" onclick="exportCurrentTable()">&#8595; CSV</button>
           </div>
@@ -569,16 +603,12 @@ $csrf      = csrf_token();
         </div>
       </div>
 
-      <!-- ═══════════════════════════════════════════════════
-           VIEW: AUDIT LOG
-           ═══════════════════════════════════════════════════ -->
+      <!-- VIEW: AUDIT LOG -->
       <div class="view" id="view-audit">
         <div class="toolbar">
-          <div class="search-bar">
-            <span class="search-icon">&#9906;</span>
-            <input type="text" id="audit-filter-action" placeholder="Filtreaza actiune...">
-          </div>
+          <div class="search-bar"><span class="search-icon">&#9906;</span><input type="text" id="audit-filter-action" placeholder="Filtreaza actiune..."></div>
           <button class="btn btn-ghost btn-sm" onclick="loadAudit()">&#8635;</button>
+          <button class="btn btn-ghost btn-sm" onclick="exportReportCSV('audit_complet')">&#8595; CSV</button>
           <?php if ($adminRole === 'superadmin'): ?>
           <button class="btn btn-danger btn-sm" onclick="clearAuditLog()">Sterge Log</button>
           <?php endif; ?>
@@ -592,13 +622,90 @@ $csrf      = csrf_token();
         <div class="pagination" id="audit-pagination"></div>
       </div>
 
-      <!-- ═══════════════════════════════════════════════════
-           VIEW: ADMIN USERS
-           ═══════════════════════════════════════════════════ -->
+      <!-- VIEW: GESTIONARE HISTORY -->
+      <?php if ($adminRole === 'superadmin'): ?>
+      <div class="view" id="view-history_mgmt">
+        <div class="toolbar">
+          <button class="btn btn-ghost btn-sm" onclick="loadHistoryFiles()">&#8635; Refresh</button>
+          <span style="font-size:12px;color:var(--text-muted)" id="history-summary"></span>
+        </div>
+        <div class="card" style="padding:0">
+          <div class="table-wrap scroll-table">
+            <table>
+              <thead><tr><th>Chip ID</th><th>Stup</th><th>Citiri</th><th>Marime</th><th>Prima</th><th>Ultima</th><th>Actiuni</th></tr></thead>
+              <tbody id="history-tbody"><tr class="loading-row"><td colspan="7"><div class="spinner"></div></td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <!-- Delete readings range -->
+        <div class="card" style="margin-top:16px">
+          <div class="card-header"><div class="card-title">&#128465; Sterge Citiri per Interval</div></div>
+          <div class="form-grid form-grid-2">
+            <div class="form-group"><label>Stup (Chip ID)</label><input type="text" id="del-range-chipid" placeholder="ex: 123456"></div>
+            <div class="form-group"><label>&nbsp;</label></div>
+            <div class="form-group"><label>Data De La</label><input type="date" id="del-range-from"></div>
+            <div class="form-group"><label>Data Pana La</label><input type="date" id="del-range-to"></div>
+          </div>
+          <button class="btn btn-danger" onclick="deleteReadingsRange()">&#128465; Sterge Citiri din Interval</button>
+        </div>
+      </div>
+
+      <!-- VIEW: EDITOR JSON -->
+      <div class="view" id="view-json_editor">
+        <div class="toolbar">
+          <select id="json-file-select" style="width:auto" onchange="loadJsonFile()">
+            <option value="">-- Selecteaza fisier --</option>
+            <option value="metadata.json">metadata.json</option>
+            <option value="controllers.json">controllers.json</option>
+            <option value="user.json">user.json</option>
+            <option value="manual_hives.json">manual_hives.json</option>
+            <option value="manifest.json">manifest.json</option>
+          </select>
+          <span id="json-file-info" style="font-size:11px;color:var(--text-muted);margin-left:8px"></span>
+        </div>
+        <div class="card" id="json-editor-card" style="display:none">
+          <div class="card-header">
+            <div class="card-title" id="json-editor-title">Editor JSON</div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-ghost btn-sm" onclick="formatJsonEditor()">&#9632; Formateaza</button>
+              <button class="btn btn-primary btn-sm" onclick="saveJsonFile()">&#128190; Salveaza</button>
+            </div>
+          </div>
+          <div id="json-validation-msg" style="margin-bottom:8px"></div>
+          <textarea id="json-editor-content" class="code-editor" rows="25" oninput="validateJsonEditor()"></textarea>
+          <div style="margin-top:8px;font-size:11px;color:var(--text-muted)">Un backup automat se creeaza la fiecare salvare.</div>
+        </div>
+      </div>
+
+      <!-- VIEW: ERROR LOG -->
+      <div class="view" id="view-errorlog">
+        <div class="toolbar">
+          <button class="btn btn-ghost btn-sm" onclick="loadErrorLog()">&#8635; Refresh</button>
+          <select id="errorlog-lines" style="width:auto" onchange="loadErrorLog()">
+            <option value="50">Ultimele 50</option>
+            <option value="100" selected>Ultimele 100</option>
+            <option value="200">Ultimele 200</option>
+            <option value="500">Ultimele 500</option>
+          </select>
+          <button class="btn btn-danger btn-sm" onclick="clearErrorLog()">&#128465; Sterge Log</button>
+        </div>
+        <div class="card" style="padding:0">
+          <div id="errorlog-info" style="padding:8px 16px;font-size:11px;color:var(--text-muted);border-bottom:1px solid var(--border)"></div>
+          <div id="errorlog-content" style="padding:12px;font-family:monospace;font-size:11px;max-height:600px;overflow-y:auto;background:var(--bg-base)">
+            <div style="text-align:center;padding:20px;color:var(--text-muted)">Apasa Refresh pentru a incarca log-ul...</div>
+          </div>
+        </div>
+      </div>
+      <?php endif; ?>
+
+      <!-- VIEW: ADMIN USERS -->
       <div class="view" id="view-admins">
         <div class="toolbar">
           <button class="btn btn-primary btn-sm" onclick="openAdminUserModal()">+ Admin Nou</button>
           <button class="btn btn-ghost btn-sm" onclick="loadAdminUsers()">&#8635;</button>
+          <?php if ($adminRole === 'superadmin'): ?>
+          <button class="btn btn-warning btn-sm" onclick="showImpersonatePanel()">&#128100; Impersoneaza User</button>
+          <?php endif; ?>
         </div>
         <div class="card" style="padding:0">
           <div class="table-wrap">
@@ -606,11 +713,21 @@ $csrf      = csrf_token();
             <tbody id="admins-tbody"></tbody></table>
           </div>
         </div>
+        <?php if ($adminRole === 'superadmin'): ?>
+        <div class="card" id="impersonate-panel" style="margin-top:16px;display:none">
+          <div class="card-header"><div class="card-title">&#128100; Impersoneaza User App</div></div>
+          <p style="color:var(--text-secondary);font-size:13px;margin-bottom:12px">Selecteaza un user din aplicatie pentru a te loga ca el (fara sa-i cunosti parola). Se va deschide aplicatia intr-un tab nou.</p>
+          <div style="display:flex;gap:8px;align-items:center">
+            <select id="impersonate-user-select" style="flex:1">
+              <option value="">-- Selecteaza user --</option>
+            </select>
+            <button class="btn btn-warning" onclick="doImpersonate()">&#128100; Acceseaza ca User</button>
+          </div>
+        </div>
+        <?php endif; ?>
       </div>
 
-      <!-- ═══════════════════════════════════════════════════
-           VIEW: SETARI
-           ═══════════════════════════════════════════════════ -->
+      <!-- VIEW: SETARI -->
       <div class="view" id="view-settings">
         <div class="two-col">
           <div class="card">
@@ -637,7 +754,7 @@ $csrf      = csrf_token();
   </div><!-- /main -->
 </div><!-- /app -->
 
-<!-- ═══════════════════ MODALS ═══════════════════ -->
+<!-- MODALS -->
 
 <!-- Hive Modal -->
 <div class="modal-overlay" id="hive-modal">
@@ -652,6 +769,7 @@ $csrf      = csrf_token();
       <div class="form-group"><label>An Matca</label><input type="text" id="hm-qyear" placeholder="ex: 24"></div>
       <div class="form-group"><label>Rasa Matca</label><input type="text" id="hm-qbreed" placeholder="ex: Carpatica"></div>
       <div class="form-group"><label>Nr. Magazii</label><input type="number" id="hm-supers" min="0" max="5" value="0"></div>
+      <div class="form-group"><label>Weight Ref (kg)</label><input type="number" id="hm-weightref" step="0.001" placeholder="0.000"></div>
       <div class="form-group"><label>Latitudine</label><input type="number" id="hm-lat" step="0.000001"></div>
       <div class="form-group"><label>Longitudine</label><input type="number" id="hm-lng" step="0.000001"></div>
       <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:6px">
@@ -663,6 +781,7 @@ $csrf      = csrf_token();
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('hive-modal')">Anuleaza</button>
+      <button class="btn btn-warning btn-sm" onclick="saveWeightRef()">&#9878; Reset WeightRef</button>
       <button class="btn btn-primary" onclick="saveHiveMeta()">Salveaza</button>
     </div>
     <input type="hidden" id="hm-chipid">
@@ -791,7 +910,7 @@ $csrf      = csrf_token();
 <div id="toast-container"></div>
 
 <script>
-window.CSRF = '<?php echo $csrf; ?>';
+window.CSRF      = '<?php echo $csrf; ?>';
 window.ADMIN_ROLE = '<?php echo $adminRole; ?>';
 </script>
 <script src="assets/app.js"></script>
