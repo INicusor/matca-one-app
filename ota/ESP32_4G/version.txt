@@ -1,2 +1,0 @@
-ESP32 version 1.83
-ESP8266 version 1.0
